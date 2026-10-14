@@ -11,13 +11,14 @@ import {
   LogOut,
   ExternalLink,
 } from 'lucide-react';
-import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { minorToMajor } from '../lib/supabase';
 import { fetchProducts } from '../services/productService';
 import { fetchUserOrders } from '../services/orderService';
 import { useAuthStore } from '../stores/authStore';
 import { ImageOptimizerUpload } from '../components/admin/ImageOptimizerUpload';
+import { ProductManager } from '../components/admin/ProductManager';
+import { OrderManager } from '../components/admin/OrderManager';
 
 export const AdminPage: React.FC = () => {
   const { user, isAdmin, signIn, signOut } = useAuthStore();
@@ -32,6 +33,7 @@ export const AdminPage: React.FC = () => {
   const [productsCount, setProductsCount] = useState(8);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'storage'>('orders');
 
   const loadData = async () => {
     setLoading(true);
@@ -239,88 +241,67 @@ export const AdminPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Free-tier Storage & Image Compression Pipeline */}
-      <ImageOptimizerUpload />
-
-      {/* Recent Orders Overview */}
-      <div className="bg-white rounded-3xl border border-brand-border/70 p-6 sm:p-8 shadow-soft space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-xl font-bold text-brand-burgundy">
-            Recent Store Orders (Fulfillment Queue)
-          </h2>
-          <span className="text-xs text-brand-text-muted">
-            {orders.length} {orders.length === 1 ? 'order' : 'orders'} in database
+      {/* Admin Tab Switcher */}
+      <div className="flex items-center gap-2 border-b border-brand-border/70 pb-px overflow-x-auto scrollbar-none">
+        <button
+          onClick={() => setActiveTab('orders')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-semibold rounded-t-2xl transition-all border-b-2 ${
+            activeTab === 'orders'
+              ? 'border-brand-burgundy text-brand-burgundy bg-brand-cream/30'
+              : 'border-transparent text-brand-text-muted hover:text-brand-burgundy hover:bg-brand-cream/10'
+          }`}
+        >
+          <Package className="w-4 h-4" />
+          <span>Orders Queue</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-softPink text-brand-burgundy font-bold">
+            {orders.length}
           </span>
-        </div>
+        </button>
 
-        {orders.length === 0 ? (
-          <div className="py-10 text-center text-sm text-brand-text-muted">
-            No orders placed yet. Place an order from checkout to see it live here!
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-brand-cream/50 border-b border-brand-border text-xs uppercase text-brand-text-muted">
-                <tr>
-                  <th className="px-4 py-3">Order Number</th>
-                  <th className="px-4 py-3">Customer</th>
-                  <th className="px-4 py-3">Amount</th>
-                  <th className="px-4 py-3">Payment</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Shiprocket Tracking</th>
-                  <th className="px-4 py-3">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-border/50">
-                {orders.map((ord) => {
-                  const addr = ord.shipping_address_snapshot as any;
-                  const customerName = addr?.fullName || 'Guest Customer';
-                  const awb = `SR${ord.order_number?.replace(/[^0-9]/g, '') || '99201'}IN`;
+        <button
+          onClick={() => setActiveTab('products')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-semibold rounded-t-2xl transition-all border-b-2 ${
+            activeTab === 'products'
+              ? 'border-brand-burgundy text-brand-burgundy bg-brand-cream/30'
+              : 'border-transparent text-brand-text-muted hover:text-brand-burgundy hover:bg-brand-cream/10'
+          }`}
+        >
+          <ShoppingBag className="w-4 h-4" />
+          <span>Product Catalog & Stock</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-cream text-brand-burgundy font-bold">
+            {productsCount}
+          </span>
+        </button>
 
-                  return (
-                    <tr key={ord.id} className="hover:bg-brand-cream/20 transition-colors">
-                      <td className="px-4 py-3.5 font-bold text-brand-burgundy">
-                        #{ord.order_number}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <p className="font-semibold text-xs text-brand-text-primary">{customerName}</p>
-                        <p className="text-[10px] text-brand-text-muted">{addr?.city || 'Pune'}</p>
-                      </td>
-                      <td className="px-4 py-3.5 font-semibold">
-                        ₹{minorToMajor(ord.total_amount_minor).toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <Badge variant="outline" className="uppercase text-[10px]">
-                          {ord.payment_method || 'COD'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <Badge variant="bestseller" className="capitalize text-[10px]">
-                          {ord.status || 'Pending'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <a
-                          href={`https://shiprocket.co/tracking/${awb}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-brand-burgundy font-semibold hover:underline"
-                        >
-                          <span>{awb}</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-brand-text-muted">
-                        {ord.created_at ? new Date(ord.created_at).toLocaleDateString('en-IN') : 'Recent'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <button
+          onClick={() => setActiveTab('storage')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-semibold rounded-t-2xl transition-all border-b-2 ${
+            activeTab === 'storage'
+              ? 'border-brand-burgundy text-brand-burgundy bg-brand-cream/30'
+              : 'border-transparent text-brand-text-muted hover:text-brand-burgundy hover:bg-brand-cream/10'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>Free-Tier Storage Optimizer</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
+            1 GB Safe
+          </span>
+        </button>
       </div>
+
+      {/* Active Tab Content */}
+      {activeTab === 'orders' && (
+        <OrderManager orders={orders} onOrderUpdated={loadData} />
+      )}
+
+      {activeTab === 'products' && (
+        <ProductManager />
+      )}
+
+      {activeTab === 'storage' && (
+        <ImageOptimizerUpload />
+      )}
+
     </div>
   );
 };

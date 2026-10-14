@@ -179,3 +179,82 @@ export async function fetchOrderByNumber(orderNumber: string) {
   }
 }
 
+/**
+ * Fetch all orders for the Admin Dashboard
+ */
+export async function fetchAllAdminOrders() {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        order_number,
+        status,
+        payment_status,
+        payment_method,
+        total_amount_minor,
+        subtotal_amount_minor,
+        shipping_amount_minor,
+        shipping_address_snapshot,
+        customer_notes,
+        created_at,
+        order_items (
+          id,
+          title_snapshot,
+          price_snapshot_minor,
+          quantity,
+          total_minor
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching admin orders:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Error in fetchAllAdminOrders:', err);
+    return [];
+  }
+}
+
+/**
+ * Update order fulfillment status (e.g. pending -> confirmed -> processing -> delivered)
+ */
+export async function updateOrderStatus(orderId: string, status: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await (supabase.from('orders') as any)
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to update order status' };
+  }
+}
+
+/**
+ * Update payment status (e.g. pending -> paid)
+ */
+export async function updatePaymentStatus(orderId: string, paymentStatus: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await (supabase.from('orders') as any)
+      .update({ payment_status: paymentStatus, updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to update payment status' };
+  }
+}
+
