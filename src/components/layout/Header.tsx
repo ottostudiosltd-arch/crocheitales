@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Truck, Heart, Gift, Search, User, ShoppingBag, Menu, X } from 'lucide-react';
+import { Truck, Heart, Gift, Search, User, ShoppingBag } from 'lucide-react';
 import { Logo } from '../brand/Logo';
 import { cn } from '../../utils/cn';
 
@@ -15,7 +15,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   onOpenCart,
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const navigate = useNavigate();
 
@@ -38,8 +37,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF1E8]/98 backdrop-blur-md border-b border-[#F2DCD1]/80 transition-all">
-      {/* 1. Top Announcement Bar (Exact text & dividers from mockup) */}
-      <div className="bg-[#79002F] text-white text-[11px] sm:text-xs py-1.5 px-4 font-normal">
+      {/* 1. Top Announcement Bar */}
+      <div className="bg-[#79002F] text-white text-[11px] sm:text-xs py-1.5 px-3 sm:px-4 font-normal">
         <div className="max-w-7xl mx-auto flex items-center justify-between tracking-wide">
           <div className="flex items-center gap-1.5">
             <Truck className="w-3.5 h-3.5 text-white/90 shrink-0" />
@@ -59,25 +58,19 @@ export const Header: React.FC<HeaderProps> = ({
             <Gift className="w-3.5 h-3.5 text-white/90 shrink-0" />
             <span>Made for your special moments ♡</span>
           </div>
+
+          {/* Heart icon on mobile right */}
+          <div className="sm:hidden flex items-center">
+            <Heart className="w-3.5 h-3.5 text-white/90 shrink-0" />
+          </div>
         </div>
       </div>
 
-      {/* 2. Main Navigation Bar - Slim, sleek and elegant */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-4">
-        {/* Mobile menu button */}
-        <div className="flex items-center lg:hidden">
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 -ml-2 text-[#79002F] rounded-lg hover:bg-black/5"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-
-        {/* Brand Logo - Prominent & clearly visible */}
+      {/* 2. Main Navigation Bar */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+        {/* Brand Logo */}
         <div className="flex items-center shrink-0">
-          <Logo size="lg" />
+          <Logo size="md" />
         </div>
 
         {/* Desktop Navigation Links */}
@@ -114,94 +107,47 @@ export const Header: React.FC<HeaderProps> = ({
           })}
         </nav>
 
-        {/* Header Search Bar Pill (As seen in client screenshot) */}
+        {/* Search Bar Pill (Directly embedded in header on mobile and desktop as in reference) */}
         <form
           onSubmit={handleSearchSubmit}
-          className="hidden md:flex items-center flex-1 max-w-xs relative mx-2"
+          className="flex items-center flex-1 max-w-[210px] xs:max-w-[250px] sm:max-w-xs relative mx-1 sm:mx-2"
         >
-          <Search className="w-4 h-4 text-[#8C5D67] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-[#8C5D67] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search handmade treasures..."
-            className="w-full pl-9 pr-4 py-2 rounded-full text-xs sm:text-sm bg-[#FCEAEB]/90 border border-[#F3CDD5] text-[#50242E] placeholder:text-[#9A707A] focus:outline-none focus:border-[#79002F] focus:bg-white transition-all"
+            className="w-full pl-8 sm:pl-9 pr-3 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-[#FCEAEB]/90 border border-[#F3CDD5] text-[#50242E] placeholder:text-[#9A707A] focus:outline-none focus:border-[#79002F] focus:bg-white transition-all shadow-2xs"
           />
         </form>
 
-        {/* Header Action Icons */}
-        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-          {/* Mobile search trigger */}
-          <button
-            onClick={onOpenSearch}
-            className="md:hidden p-1.5 text-[#79002F] hover:opacity-80 transition-opacity"
-            aria-label="Search"
-          >
-            <Search className="w-5 h-5 stroke-[1.8]" />
-          </button>
-
+        {/* Header Action Icons (User Profile & Cart) */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Account */}
           <Link
             to="/profile"
-            className="p-1.5 text-[#79002F] hover:opacity-80 transition-opacity"
+            className="w-8 h-8 rounded-full bg-[#FCEAEB] flex items-center justify-center text-[#79002F] hover:bg-[#F8D2DA] hover:scale-105 active:scale-95 transition-all shadow-2xs"
             aria-label="Account"
           >
-            <User className="w-5 h-5 stroke-[1.8]" />
+            <User className="w-4 h-4 stroke-[1.9]" />
           </Link>
 
           {/* Shopping Cart Bag with Little Badge 2 */}
           <button
             onClick={onOpenCart}
-            className="relative p-1.5 text-[#79002F] hover:opacity-80 transition-opacity"
+            className="relative w-8 h-8 rounded-full bg-[#FCEAEB] flex items-center justify-center text-[#79002F] hover:bg-[#F8D2DA] hover:scale-105 active:scale-95 transition-all shadow-2xs"
             aria-label="Shopping Cart"
           >
-            <ShoppingBag className="w-5 h-5 stroke-[1.8]" />
+            <ShoppingBag className="w-4 h-4 stroke-[1.9]" />
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#79002F] text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-[#FAF1E8]">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#79002F] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
                 {cartCount}
               </span>
             )}
           </button>
         </div>
       </div>
-
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-[#F2DCD1] bg-[#FAF1E8] px-4 py-4 space-y-2 shadow-lg animate-fadeIn">
-          {navLinks.map((link) => {
-            const isHash = link.path.startsWith('/#');
-            if (isHash) {
-              return (
-                <Link
-                  key={link.name}
-                  to={link.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-xl text-sm font-medium transition-colors text-[#50242E] hover:bg-white/60"
-                >
-                  {link.name}
-                </Link>
-              );
-            }
-            return (
-              <NavLink
-                key={link.name}
-                to={link.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    'block px-3 py-2 rounded-xl text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-[#FBE0E6] text-[#79002F] font-semibold'
-                      : 'text-[#50242E] hover:bg-white/60'
-                  )
-                }
-              >
-                {link.name}
-              </NavLink>
-            );
-          })}
-        </div>
-      )}
     </header>
   );
 };

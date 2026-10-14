@@ -14,7 +14,7 @@ export const MobileBottomNav: React.FC = () => {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-brand-border/80 px-2 py-1.5 shadow-[0_-4px_16px_rgba(121,0,47,0.05)]"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#F3CDD5] px-2 py-1.5 shadow-[0_-4px_24px_rgba(0,0,0,0.09)] rounded-t-2xl sm:rounded-t-3xl"
       aria-label="Mobile Bottom Navigation"
     >
       <div className="flex items-center justify-around max-w-md mx-auto">
@@ -26,10 +26,10 @@ export const MobileBottomNav: React.FC = () => {
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 select-none min-w-[56px]',
+                  'flex flex-col items-center justify-center py-1 px-2.5 transition-all duration-200 select-none min-w-[56px]',
                   isActive
-                    ? 'text-brand-burgundy font-semibold'
-                    : 'text-brand-text-muted hover:text-brand-burgundy'
+                    ? 'text-[#79002F] font-semibold'
+                    : 'text-[#8C5D67] hover:text-[#79002F]'
                 )
               }
             >
@@ -37,11 +37,11 @@ export const MobileBottomNav: React.FC = () => {
                 <>
                   <div
                     className={cn(
-                      'p-1 rounded-full transition-transform',
-                      isActive ? 'bg-brand-softPink text-brand-burgundy scale-105' : ''
+                      'px-3.5 py-1 rounded-2xl transition-all duration-200 flex items-center justify-center',
+                      isActive ? 'bg-[#FCEAEB] text-[#79002F]' : 'text-[#8C5D67]'
                     )}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-5 h-5 stroke-[1.9]" />
                   </div>
                   <span className="text-[10px] mt-0.5 tracking-tight font-medium">
                     {item.name}

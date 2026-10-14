@@ -6,27 +6,37 @@ export const Footer: React.FC = () => {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
 
-  // Simple minimal footer strip for non-home pages (Shop, Workshops, Cart, Profile, etc.)
-  if (!isHomePage) {
-    return (
-      <footer className="relative bg-[#6E0A29] text-white mt-auto border-t border-white/15 pb-20 lg:pb-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs text-white/70 gap-2">
+  return (
+    <>
+      {/* 1. Mobile Small Minimal Footer Strip (Always displayed on mobile screens < lg) */}
+      <footer className="block lg:hidden relative bg-[#6E0A29] text-white border-t border-white/15 pb-20 pt-4 px-4 text-center">
+        <div className="max-w-md mx-auto flex flex-col items-center justify-center text-[11px] text-white/80 gap-1.5">
           <p>© 2025 Crochei Tales. All rights reserved.</p>
-          <p className="flex items-center gap-1">
+          <p className="flex items-center gap-1 justify-center">
             Made with <span className="text-white">♡</span> for all the handmade lovers.
           </p>
         </div>
       </footer>
-    );
-  }
 
-  // Full rich footer for Home page
-  return (
-    <footer className="relative bg-[#6E0A29] text-white mt-12 pb-20 lg:pb-8">
-      {/* 1. Signature Scalloped Wave Decorative Border */}
-      <div className="scalloped-divider -mt-3.5" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle at 10px 0, transparent 0, transparent 10px, #6E0A29 11px)' }} />
+      {/* 2. Desktop Minimal Footer Strip for non-home pages */}
+      {!isHomePage && (
+        <footer className="hidden lg:block relative bg-[#6E0A29] text-white mt-auto border-t border-white/15">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs text-white/70 gap-2">
+            <p>© 2025 Crochei Tales. All rights reserved.</p>
+            <p className="flex items-center gap-1">
+              Made with <span className="text-white">♡</span> for all the handmade lovers.
+            </p>
+          </div>
+        </footer>
+      )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
+      {/* 3. Full Rich Desktop Footer for Home page (hidden on mobile) */}
+      {isHomePage && (
+        <footer className="hidden lg:block relative bg-[#6E0A29] text-white mt-12 pb-8">
+          {/* Signature Scalloped Wave Decorative Border */}
+          <div className="scalloped-divider -mt-3.5" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle at 10px 0, transparent 0, transparent 10px, #6E0A29 11px)' }} />
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* Column 1: Brand Logo & Mission */}
           <div className="lg:col-span-4 space-y-4">
@@ -149,5 +159,8 @@ export const Footer: React.FC = () => {
         </div>
       </div>
     </footer>
+  )}
+</>
   );
 };
+
