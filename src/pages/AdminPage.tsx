@@ -17,6 +17,7 @@ import { minorToMajor } from '../lib/supabase';
 import { fetchProducts } from '../services/productService';
 import { fetchUserOrders } from '../services/orderService';
 import { useAuthStore } from '../stores/authStore';
+import { ImageOptimizerUpload } from '../components/admin/ImageOptimizerUpload';
 
 export const AdminPage: React.FC = () => {
   const { user, isAdmin, signIn, signOut } = useAuthStore();
@@ -237,6 +238,9 @@ export const AdminPage: React.FC = () => {
           <span className="text-[10px] text-emerald-600 font-medium">Beginners Masterclass</span>
         </div>
       </div>
+
+      {/* Free-tier Storage & Image Compression Pipeline */}
+      <ImageOptimizerUpload />
 
       {/* Recent Orders Overview */}
       <div className="bg-white rounded-3xl border border-brand-border/70 p-6 sm:p-8 shadow-soft space-y-4">
