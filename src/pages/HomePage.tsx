@@ -11,11 +11,11 @@ import {
   ExternalLink,
   MessageCircle,
 } from 'lucide-react';
-import heroImage from '../assets/hero.png';
-import heroMobileImage from '../assets/hero-mobile.png';
-import promoGiftBox from '../assets/promo-gift-box.png';
-import categoryBg from '../assets/Shop by Category.png';
-import contactBg from '../assets/contact.png';
+import heroImage from '../assets/hero.webp';
+import heroMobileImage from '../assets/hero-mobile.webp';
+import promoGiftBox from '../assets/promo-gift-box.webp';
+import categoryBg from '../assets/Shop by Category.webp';
+import contactBg from '../assets/contact.webp';
 import { asset } from '../utils/asset';
 import { ProductCard, Product } from '../components/shop/ProductCard';
 
@@ -45,27 +45,27 @@ export const HomePage: React.FC = () => {
     {
       title: 'Flower Bouquets',
       slug: 'flower-bouquets',
-      image: asset('/images/mockup/cat-flower-bouquets.png'),
+      image: asset('/images/mockup/cat-flower-bouquets.webp'),
     },
     {
       title: 'Hair Accessories',
       slug: 'hair-accessories',
-      image: asset('/images/mockup/cat-hair-accessories.png'),
+      image: asset('/images/mockup/cat-hair-accessories.webp'),
     },
     {
       title: 'Keychains',
       slug: 'keychains',
-      image: asset('/images/mockup/cat-keychains.png'),
+      image: asset('/images/mockup/cat-keychains.webp'),
     },
     {
       title: 'Wearables',
       slug: 'wearables',
-      image: asset('/images/mockup/cat-wearables.png'),
+      image: asset('/images/mockup/cat-wearables.webp'),
     },
     {
       title: 'Plushies',
       slug: 'plushies',
-      image: asset('/images/mockup/cat-plushies.png'),
+      image: asset('/images/mockup/cat-plushies.webp'),
     },
   ];
 
@@ -79,7 +79,7 @@ export const HomePage: React.FC = () => {
       originalPrice: 249,
       rating: 4.6,
       reviewCount: 98,
-      imageUrl: asset('/images/products/bow-hair-clip.png'),
+      imageUrl: asset('/images/products/bow-hair-clip.webp'),
       category: 'Hair Accessories',
       tag: 'Bestseller',
       inStock: true,
@@ -91,7 +91,7 @@ export const HomePage: React.FC = () => {
       price: 199,
       rating: 4.7,
       reviewCount: 76,
-      imageUrl: asset('/images/products/daisy-keychain.png'),
+      imageUrl: asset('/images/products/daisy-keychain.webp'),
       category: 'Keychains',
       tag: 'Sale',
       inStock: true,
@@ -104,7 +104,7 @@ export const HomePage: React.FC = () => {
       originalPrice: 1299,
       rating: 4.8,
       reviewCount: 124,
-      imageUrl: asset('/images/products/tulip-bouquet.png'),
+      imageUrl: asset('/images/products/tulip-bouquet.webp'),
       category: 'Flower Bouquets',
       inStock: true,
     },
@@ -116,42 +116,42 @@ export const HomePage: React.FC = () => {
       title: 'Hair Accessories',
       subtitle: 'Clips, scrunchies & more',
       slug: 'hair-accessories',
-      image: asset('/images/mockup/cat-hair-accessories.png'),
+      image: asset('/images/mockup/cat-hair-accessories.webp'),
       badge: '🎀',
     },
     {
       title: 'Keychains',
       subtitle: 'Cute charms & bag tags',
       slug: 'keychains',
-      image: asset('/images/mockup/cat-keychains.png'),
+      image: asset('/images/mockup/cat-keychains.webp'),
       badge: '✨',
     },
     {
       title: 'Flower Bouquets',
       subtitle: 'Everlasting floral blooms',
       slug: 'flower-bouquets',
-      image: asset('/images/mockup/cat-flower-bouquets.png'),
+      image: asset('/images/mockup/cat-flower-bouquets.webp'),
       badge: '🌸',
     },
     {
       title: 'Wearables',
       subtitle: 'Tops, hats & mufflers',
       slug: 'wearables',
-      image: asset('/images/mockup/cat-wearables.png'),
+      image: asset('/images/mockup/cat-wearables.webp'),
       badge: '🧶',
     },
     {
       title: 'Plushies',
       subtitle: 'Soft snuggly companions',
       slug: 'plushies',
-      image: asset('/images/mockup/cat-plushies.png'),
+      image: asset('/images/mockup/cat-plushies.webp'),
       badge: '🧸',
     },
     {
       title: 'Other Things',
       subtitle: 'Bookmarks, coasters & more',
       slug: 'other-things',
-      image: asset('/images/mockup/cat-other-things.png'),
+      image: asset('/images/mockup/cat-other-things.webp'),
       badge: '♡',
     },
   ];
@@ -169,6 +169,8 @@ export const HomePage: React.FC = () => {
             src={heroMobileImage}
             alt="Crochei Tales - Handmade for Brighter Days"
             className="absolute inset-0 w-full h-full object-cover object-right select-none pointer-events-none"
+            loading="eager"
+            decoding="sync"
           />
 
           {/* Left Text Overlay */}
@@ -279,6 +281,8 @@ export const HomePage: React.FC = () => {
                   src={cat.image}
                   alt={cat.title}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
+                  decoding="async"
                 />
                 {/* White bottom pill label */}
                 <div className="absolute bottom-2 left-1.5 right-1.5 bg-white/95 backdrop-blur-xs py-1 px-1 rounded-xl text-center shadow-xs border border-white/60">
@@ -322,6 +326,8 @@ export const HomePage: React.FC = () => {
               src={promoGiftBox}
               alt="Handmade Gift Sets"
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
           </div>
         </section>
@@ -419,9 +425,11 @@ export const HomePage: React.FC = () => {
               style={{ top: '24%', width: 'min(380px, 45%)' }}
             >
               <img
-                src={asset('/branding/crochie-tales-logo-transparent.png')}
+                src={asset('/branding/crochie-tales-logo-transparent.webp')}
                 alt="Crochei Tales"
                 className="w-full h-auto max-h-[170px] md:max-h-[200px] object-contain drop-shadow-xs"
+                loading="eager"
+                decoding="async"
               />
             </div>
 

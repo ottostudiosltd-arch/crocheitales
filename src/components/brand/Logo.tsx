@@ -30,9 +30,11 @@ export const Logo: React.FC<LogoProps> = ({
       aria-label="Crochei Tales Home"
     >
       <img
-        src={isWhite ? asset('/branding/crochie-tales-logo-white.png') : asset('/branding/crochie-tales-logo-transparent.png')}
+        src={isWhite ? asset('/branding/crochie-tales-logo-white.webp') : asset('/branding/crochie-tales-logo-transparent.webp')}
         alt="Crochei Tales"
         className={`${sizeClasses[size]} w-auto object-contain`}
+        loading="eager"
+        decoding="async"
       />
     </Link>
   );
