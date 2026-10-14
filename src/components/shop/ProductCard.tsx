@@ -75,20 +75,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Tag / Badge */}
         {product.tag && (
-          <div className="absolute top-2.5 left-2.5 z-10">
+          <div className="absolute top-2.5 left-2.5 z-10 max-w-[calc(100%-42px)]">
             {product.tag === 'Bestseller' && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#B33951] text-white shadow-sm">
-                <CrownIcon className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#79002F] text-white shadow-xs whitespace-nowrap">
+                <CrownIcon className="w-2.5 h-2.5 shrink-0" />
                 <span>Bestseller</span>
               </span>
             )}
             {product.tag === 'Sale' && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#E56B6F] text-white shadow-sm">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF758F] text-white shadow-xs whitespace-nowrap">
                 Sale
               </span>
             )}
             {product.tag === 'New' && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#D96B7A] text-white shadow-sm">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#D96B7A] text-white shadow-xs whitespace-nowrap">
                 New
               </span>
             )}
@@ -99,11 +99,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <button
           onClick={handleWishlistClick}
           aria-label={wishlistActive ? 'Remove from Wishlist' : 'Add to Wishlist'}
-          className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-brand-burgundy transition-all hover:scale-110 active:scale-90 shadow-sm"
+          className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-[#79002F] transition-all hover:scale-110 active:scale-90 shadow-xs"
         >
           <Heart
             className={cn(
-              'w-4 h-4 transition-colors',
+              'w-3.5 h-3.5 transition-colors',
               wishlistActive
                 ? 'fill-[#79002F] text-[#79002F]'
                 : 'text-[#79002F]'
@@ -117,50 +117,62 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div>
           <Link
             to={`/products/${product.slug}`}
-            className="block font-medium text-sm sm:text-base text-[#2E1820] hover:text-[#79002F] transition-colors line-clamp-1"
+            className="block font-medium text-xs sm:text-sm text-[#2E1820] hover:text-[#79002F] transition-colors truncate"
           >
             {product.title}
           </Link>
 
           {/* Rating */}
-          {product.rating !== undefined && (
-            <div className="flex items-center gap-1.5 mt-1 text-xs">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-              <span className="font-bold text-[#2E1820]">
-                {product.rating.toFixed(1)}
-              </span>
-              {product.reviewCount !== undefined && (
-                <span className="text-[#8C7A80]">({product.reviewCount})</span>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-1 mt-1 text-[11px] h-4">
+            {product.rating !== undefined ? (
+              <>
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                <span className="font-bold text-[#2E1820]">
+                  {product.rating.toFixed(1)}
+                </span>
+                {product.reviewCount !== undefined && (
+                  <span className="text-[#8C7A80]">({product.reviewCount})</span>
+                )}
+              </>
+            ) : (
+              <span className="text-transparent">Rating</span>
+            )}
+          </div>
         </div>
 
-        {/* Pricing & Cart Action Row */}
-        <div className="flex items-center justify-between mt-3 pt-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-base sm:text-lg font-bold text-[#2E1820] font-sans">
-              ₹{product.price.toLocaleString('en-IN')}
-            </span>
-            {product.originalPrice && product.originalPrice > product.price && (
-              <>
-                <span className="text-xs text-[#9B8C90] line-through">
+        {/* Pricing & Cart Action Row (Equalized across all cards) */}
+        <div className="flex items-end justify-between mt-2 pt-1.5 border-t border-[#F2DCD1]/50">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-sm sm:text-base font-bold text-[#2E1820] font-sans">
+                ₹{product.price.toLocaleString('en-IN')}
+              </span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <span className="text-[10px] text-[#9B8C90] line-through">
                   ₹{product.originalPrice.toLocaleString('en-IN')}
                 </span>
-                <span className="bg-[#FDF0F2] text-[#D9536F] text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full border border-[#FADDE3]">
+              )}
+            </div>
+
+            {/* Consistent height slot for discount tag */}
+            <div className="h-4.5 flex items-center mt-0.5">
+              {product.originalPrice && product.originalPrice > product.price ? (
+                <span className="bg-[#FDF0F2] text-[#D9536F] text-[9.5px] font-bold px-1.5 py-0.5 rounded-full border border-[#FADDE3] leading-none">
                   {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                 </span>
-              </>
-            )}
+              ) : (
+                <span className="text-[9.5px] text-transparent select-none leading-none">No discount</span>
+              )}
+            </div>
           </div>
 
           {/* Circular Burgundy Cart Button */}
           <button
             onClick={handleCartClick}
             aria-label={`Add ${product.title} to cart`}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#79002F] text-white flex items-center justify-center transition-all duration-200 hover:bg-[#5C0024] hover:scale-105 active:scale-95 shadow-sm shrink-0"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#79002F] text-white flex items-center justify-center transition-all duration-200 hover:bg-[#5C0024] hover:scale-105 active:scale-95 shadow-xs shrink-0"
           >
-            <ShoppingCart className="w-4 h-4" />
+            <ShoppingCart className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

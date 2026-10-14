@@ -89,6 +89,7 @@ export const HomePage: React.FC = () => {
       slug: 'daisy-keychain',
       title: 'Daisy Keychain',
       price: 199,
+      originalPrice: 299,
       rating: 4.7,
       reviewCount: 76,
       imageUrl: asset('/images/products/daisy-keychain.webp'),
@@ -106,6 +107,7 @@ export const HomePage: React.FC = () => {
       reviewCount: 124,
       imageUrl: asset('/images/products/tulip-bouquet.webp'),
       category: 'Flower Bouquets',
+      tag: 'Bestseller',
       inStock: true,
     },
   ];
@@ -352,11 +354,11 @@ export const HomePage: React.FC = () => {
             </Link>
           </div>
 
-          {/* Horizontal Product Cards */}
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1 px-1 -mx-3 pl-3">
+          {/* Horizontal Product Cards (Equal height & identical alignment) */}
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1 px-1 -mx-3 pl-3 items-stretch">
             {bestsellers.map((prod) => (
-              <div key={prod.id} className="w-[145px] xs:w-[155px] shrink-0">
-                <ProductCard product={prod} />
+              <div key={prod.id} className="w-[160px] xs:w-[170px] shrink-0 flex flex-col">
+                <ProductCard product={prod} className="h-full flex flex-col justify-between" />
               </div>
             ))}
           </div>
@@ -364,18 +366,20 @@ export const HomePage: React.FC = () => {
 
         {/* 6. Quick Mobile Story & Contact Banner */}
         <section className="mt-4 pt-2 space-y-2.5">
-          <div className="p-3 rounded-2xl bg-white/80 border border-[#FAD3DC] flex items-center justify-between shadow-2xs">
+          <Link
+            to="/about"
+            className="p-3.5 rounded-2xl bg-white/90 border border-[#FAD3DC] flex items-center justify-between shadow-2xs hover:border-[#79002F]/40 transition-all group"
+          >
             <div>
-              <h4 className="font-serif font-bold text-xs text-[#79002F]">Our Story ♡</h4>
+              <h4 className="font-serif font-bold text-xs text-[#79002F] group-hover:text-[#5C0024] transition-colors">
+                Our Story ♡
+              </h4>
               <p className="text-[10px] text-[#79002F]/75">Handcrafted with pure love & patience</p>
             </div>
-            <a
-              href="#about"
-              className="px-3 py-1 rounded-full bg-[#79002F] text-white text-[10px] font-semibold hover:bg-[#5C0024]"
-            >
-              Read
-            </a>
-          </div>
+            <span className="px-3.5 py-1.5 rounded-full bg-[#79002F] text-white text-[10px] font-semibold group-hover:bg-[#5C0024] transition-colors shadow-xs">
+              Read Story
+            </span>
+          </Link>
 
           <div className="p-3 rounded-2xl bg-white/80 border border-[#FAD3DC] flex items-center justify-between shadow-2xs">
             <div>
