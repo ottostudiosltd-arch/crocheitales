@@ -1,25 +1,48 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Star, Heart, ShoppingBag, Truck, ShieldCheck, ArrowLeft, Plus, Minus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { Star, Heart, ShoppingBag, Truck, ShieldCheck, ArrowLeft, Plus, Minus, Check } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { fetchProductBySlug } from '../services/productService';
+import { minorToMajor } from '../lib/supabase';
+import { useCartStore } from '../stores/cartStore';
 
 export const ProductDetailPage: React.FC = () => {
+  const { slug } = useParams<{ slug: string }>();
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [addedToast, setAddedToast] = useState(false);
 
-  const product = {
+  const addItemToCart = useCartStore((s) => s.addItem);
+
+  interface ProductDetail {
+    id: string;
+    slug: string;
+    title: string;
+    price: number;
+    originalPrice?: number;
+    rating: number;
+    reviewCount: number;
+    images: string[];
+    description: string;
+    materials: string;
+    care: string;
+    inStock: boolean;
+  }
+
+  const defaultProduct: ProductDetail = {
     id: 'prod-1',
+    slug: 'tulip-bouquet',
     title: 'Tulip Crochet Bouquet',
     price: 899,
     originalPrice: 1199,
     rating: 4.8,
     reviewCount: 124,
     images: [
+      '/images/products/tulip-bouquet.webp',
       'https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=800&auto=format&fit=crop&q=80',
       'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=800&auto=format&fit=crop&q=80',
     ],
     description:
       'Everlasting spring captured in soft threads. Our Tulip Crochet Bouquet features five vibrant hand-knitted blooms carefully wrapped in artisanal craft paper and finished with a delicate lace ribbon.',
@@ -28,8 +51,61 @@ export const ProductDetailPage: React.FC = () => {
     inStock: true,
   };
 
+  const [product, setProduct] = useState<ProductDetail>(defaultProduct);
+
+  useEffect(() => {
+    if (!slug) return;
+
+    fetchProductBySlug(slug).then((data) => {
+      if (data) {
+        const imageList = data.product_images?.length
+          ? data.product_images.sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url)
+          : defaultProduct.images;
+
+        setProduct({
+          id: data.id,
+          slug: data.slug,
+          title: data.title,
+          price: minorToMajor(data.price_minor),
+          originalPrice: data.compare_at_price_minor ? minorToMajor(data.compare_at_price_minor) : undefined,
+          rating: data.rating ? Number(data.rating) : 5.0,
+          reviewCount: data.review_count || 0,
+          images: imageList,
+          description: data.description || data.short_description || defaultProduct.description,
+          materials: defaultProduct.materials,
+          care: defaultProduct.care,
+          inStock: (data.stock_quantity ?? 0) > 0,
+        });
+      }
+    });
+  }, [slug]);
+
+  const handleAddToCart = () => {
+    addItemToCart(
+      {
+        id: product.id,
+        slug: product.slug,
+        title: product.title,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        imageUrl: product.images[0] || '/images/products/tulip-bouquet.webp',
+      },
+      quantity
+    );
+    setAddedToast(true);
+    setTimeout(() => setAddedToast(false), 2400);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      {/* Toast Notification */}
+      {addedToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#79002F] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-xs sm:text-sm animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <Check className="w-4 h-4 text-green-300" />
+          <span>Added <strong>{quantity}× {product.title}</strong> to your bag! ♡</span>
+        </div>
+      )}
+
       {/* Back to Shop link */}
       <Link
         to="/shop"
@@ -44,18 +120,18 @@ export const ProductDetailPage: React.FC = () => {
         <div className="lg:col-span-7 space-y-4">
           <div className="w-full aspect-square rounded-3xl overflow-hidden border border-brand-border bg-white shadow-soft">
             <img
-              src={product.images[selectedImage]}
+              src={product.images[selectedImage] || product.images[0]}
               alt={product.title}
               className="w-full h-full object-cover transition-all duration-300"
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1">
             {product.images.map((img, idx) => (
               <button
                 key={idx}
                 onClick={() => setSelectedImage(idx)}
-                className={`w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all ${
+                className={`w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0 ${
                   selectedImage === idx
                     ? 'border-brand-burgundy ring-2 ring-brand-blush'
                     : 'border-brand-border hover:opacity-80'
@@ -70,7 +146,7 @@ export const ProductDetailPage: React.FC = () => {
         {/* Right: Product Details & Purchase Actions */}
         <div className="lg:col-span-5 space-y-6">
           <div className="space-y-2">
-            <Badge variant="bestseller">Bestseller</Badge>
+            <Badge variant="bestseller">Handmade with Love ♡</Badge>
             <h1 className="text-3xl sm:text-4xl font-serif text-brand-burgundy font-normal">
               {product.title}
             </h1>
@@ -90,12 +166,16 @@ export const ProductDetailPage: React.FC = () => {
             <span className="text-3xl font-bold text-brand-burgundy font-sans">
               ₹{product.price.toLocaleString('en-IN')}
             </span>
-            <span className="text-base text-brand-text-muted line-through">
-              ₹{product.originalPrice.toLocaleString('en-IN')}
-            </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-softPink text-brand-burgundy">
-              Save 25%
-            </span>
+            {product.originalPrice && (
+              <span className="text-base text-brand-text-muted line-through">
+                ₹{product.originalPrice.toLocaleString('en-IN')}
+              </span>
+            )}
+            {product.originalPrice && product.originalPrice > product.price && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-softPink text-brand-burgundy">
+                Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+              </span>
+            )}
           </div>
 
           <p className="text-sm text-brand-text-muted leading-relaxed">
@@ -135,6 +215,7 @@ export const ProductDetailPage: React.FC = () => {
                 size="lg"
                 className="flex-1"
                 leftIcon={<ShoppingBag className="w-5 h-5" />}
+                onClick={handleAddToCart}
               >
                 Add to Bag • ₹{(product.price * quantity).toLocaleString('en-IN')}
               </Button>

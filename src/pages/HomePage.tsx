@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Truck,
@@ -18,6 +18,7 @@ import categoryBg from '../assets/Shop by Category.webp';
 import contactBg from '../assets/contact.webp';
 import { asset } from '../utils/asset';
 import { ProductCard, Product } from '../components/shop/ProductCard';
+import { fetchProducts } from '../services/productService';
 
 // 8-Lobe Scalloped Pink Flower Badge matching the mobile reference mockup
 const ScallopFlowerBadge: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -69,8 +70,8 @@ export const HomePage: React.FC = () => {
     },
   ];
 
-  // Mobile Bestsellers matching client reference
-  const bestsellers: Product[] = [
+  // Initial Bestsellers matching client reference
+  const initialBestsellers: Product[] = [
     {
       id: 'best-1',
       slug: 'bow-hair-clip',
@@ -111,6 +112,16 @@ export const HomePage: React.FC = () => {
       inStock: true,
     },
   ];
+
+  const [bestsellers, setBestsellers] = useState<Product[]>(initialBestsellers);
+
+  useEffect(() => {
+    fetchProducts({ limit: 6 }).then((dbProducts) => {
+      if (dbProducts && dbProducts.length > 0) {
+        setBestsellers(dbProducts);
+      }
+    });
+  }, []);
 
   // Desktop Categories (6 full categories)
   const categories = [

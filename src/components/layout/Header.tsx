@@ -3,6 +3,7 @@ import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { Truck, Heart, Gift, Search, User, ShoppingBag } from 'lucide-react';
 import { Logo } from '../brand/Logo';
 import { cn } from '../../utils/cn';
+import { useCartStore } from '../../stores/cartStore';
 
 interface HeaderProps {
   cartCount?: number;
@@ -11,10 +12,12 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  cartCount = 2,
+  cartCount: propCartCount,
   onOpenSearch,
   onOpenCart,
 }) => {
+  const storeCartCount = useCartStore((s) => s.getTotalItems());
+  const cartCount = propCartCount !== undefined ? propCartCount : storeCartCount;
   const [searchInput, setSearchInput] = useState('');
   const navigate = useNavigate();
 

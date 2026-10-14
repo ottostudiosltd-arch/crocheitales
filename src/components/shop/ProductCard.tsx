@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart, Star } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { useCartStore } from '../../stores/cartStore';
 
 export interface Product {
   id: string;
@@ -51,7 +52,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const handleCartClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onAddToCart?.(product);
+    if (onAddToCart) {
+      onAddToCart(product);
+    } else {
+      useCartStore.getState().addItem(product, 1);
+    }
   };
 
   return (

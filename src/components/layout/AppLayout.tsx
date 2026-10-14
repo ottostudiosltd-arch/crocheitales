@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Footer } from './Footer';
@@ -6,10 +6,17 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { SearchModal } from './SearchModal';
 import { CartDrawer } from '../cart/CartDrawer';
 import { ScrollToHashElement } from './ScrollToHashElement';
+import { AuthModal } from '../auth/AuthModal';
+import { useAuthStore } from '../../stores/authStore';
 
 export const AppLayout: React.FC = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const initializeAuth = useAuthStore((s) => s.initialize);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-cream-light text-brand-text-primary selection:bg-brand-blush selection:text-brand-burgundy">
@@ -33,6 +40,7 @@ export const AppLayout: React.FC = () => {
         isOpen={cartOpen}
         onClose={() => setCartOpen(false)}
       />
+      <AuthModal />
     </div>
   );
 };

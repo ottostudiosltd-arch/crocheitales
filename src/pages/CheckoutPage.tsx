@@ -1,18 +1,72 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Truck, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Truck, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
+import { useCartStore } from '../stores/cartStore';
+import { useAuthStore } from '../stores/authStore';
+import { placeOrder } from '../services/orderService';
 
 export const CheckoutPage: React.FC = () => {
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
-  const [orderPlaced, setOrderPlaced] = useState(false);
+  const { items, getSubtotal, clearCart } = useCartStore();
+  const { user, profile } = useAuthStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmedOrderNumber, setConfirmedOrderNumber] = useState<string | null>(null);
+
+  // Form State
+  const [fullName, setFullName] = useState(profile?.full_name || user?.user_metadata?.full_name || '');
+  const [phone, setPhone] = useState(profile?.phone || user?.user_metadata?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [addressLine1, setAddressLine1] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('Maharashtra');
+  const [postalCode, setPostalCode] = useState('');
+
+  const subtotal = getSubtotal();
+  const shippingFee = subtotal >= 999 || subtotal === 0 ? 0 : 79;
+  const total = subtotal + shippingFee;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setOrderPlaced(true);
+    if (items.length === 0) {
+      setErrorMessage('Your bag is empty! Please add items before checking out.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    const result = await placeOrder({
+      customerId: user?.id,
+      items,
+      subtotal,
+      shippingFee,
+      total,
+      paymentMethod,
+      shippingAddress: {
+        fullName,
+        phone,
+        email,
+        addressLine1,
+        city,
+        state,
+        postalCode,
+      },
+    });
+
+    setIsSubmitting(false);
+
+    if (result.success && result.orderNumber) {
+      setConfirmedOrderNumber(result.orderNumber);
+      clearCart();
+    } else {
+      setErrorMessage(result.error || 'Failed to place order. Please try again.');
+    }
   };
 
-  if (orderPlaced) {
+  if (confirmedOrderNumber) {
     return (
       <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-6">
         <div className="w-20 h-20 rounded-full bg-brand-softPink text-brand-burgundy flex items-center justify-center mx-auto shadow-inner">
@@ -20,11 +74,16 @@ export const CheckoutPage: React.FC = () => {
         </div>
         <h1 className="text-3xl font-serif text-brand-burgundy">Thank You for Your Order!</h1>
         <p className="text-sm text-brand-text-muted">
-          Your handmade treasures are being queued for crafting. Order confirmation #CT-82914 has been recorded.
+          Your handmade crochet treasures are being queued for crafting. Order confirmation <strong>#{confirmedOrderNumber}</strong> has been saved directly to your account.
         </p>
-        <Link to="/orders">
-          <Button variant="primary">View My Orders</Button>
-        </Link>
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link to="/orders">
+            <Button variant="primary">View My Orders</Button>
+          </Link>
+          <Link to="/shop">
+            <Button variant="outline">Continue Shopping</Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -39,6 +98,13 @@ export const CheckoutPage: React.FC = () => {
       <h1 className="text-3xl sm:text-4xl font-serif text-brand-burgundy font-normal">
         Secure Checkout
       </h1>
+
+      {errorMessage && (
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
         {/* Customer & Shipping Details Form */}
@@ -56,6 +122,8 @@ export const CheckoutPage: React.FC = () => {
                 <input
                   type="text"
                   required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   placeholder="e.g. Priya Sharma"
                   className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-brand-cream/30 text-sm focus:outline-none focus:border-brand-burgundy"
                 />
@@ -67,10 +135,25 @@ export const CheckoutPage: React.FC = () => {
                 <input
                   type="tel"
                   required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 744 724 6150"
                   className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-brand-cream/30 text-sm focus:outline-none focus:border-brand-burgundy"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase text-brand-text-muted mb-1">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="priya@example.com"
+                className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-brand-cream/30 text-sm focus:outline-none focus:border-brand-burgundy"
+              />
             </div>
 
             <div>
@@ -80,6 +163,8 @@ export const CheckoutPage: React.FC = () => {
               <input
                 type="text"
                 required
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
                 placeholder="House / Flat No., Apartment, Street"
                 className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-brand-cream/30 text-sm focus:outline-none focus:border-brand-burgundy"
               />
@@ -93,6 +178,8 @@ export const CheckoutPage: React.FC = () => {
                 <input
                   type="text"
                   required
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
                   placeholder="e.g. Pune"
                   className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-brand-cream/30 text-sm focus:outline-none focus:border-brand-burgundy"
                 />
@@ -104,6 +191,8 @@ export const CheckoutPage: React.FC = () => {
                 <input
                   type="text"
                   required
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
                   placeholder="e.g. Maharashtra"
                   className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-brand-cream/30 text-sm focus:outline-none focus:border-brand-burgundy"
                 />
@@ -115,7 +204,9 @@ export const CheckoutPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 411014"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  placeholder="e.g. 411001"
                   className="w-full px-4 py-2.5 rounded-xl border border-brand-border bg-brand-cream/30 text-sm focus:outline-none focus:border-brand-burgundy"
                 />
               </div>
@@ -185,21 +276,31 @@ export const CheckoutPage: React.FC = () => {
 
             <div className="space-y-3 text-sm">
               <div className="flex justify-between text-brand-text-muted">
-                <span>Items Subtotal (2 items)</span>
-                <span className="font-semibold text-brand-text-primary">₹1,148</span>
+                <span>Items Subtotal ({items.length} {items.length === 1 ? 'item' : 'items'})</span>
+                <span className="font-semibold text-brand-text-primary">₹{subtotal.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-brand-text-muted">
                 <span>Shipping via Shiprocket</span>
-                <span className="font-semibold text-brand-burgundy">FREE</span>
+                <span className="font-semibold text-brand-burgundy">
+                  {shippingFee === 0 ? 'FREE' : `₹${shippingFee}`}
+                </span>
               </div>
               <div className="pt-3 border-t border-brand-border flex justify-between text-xl font-bold text-brand-burgundy">
                 <span>Amount to Pay</span>
-                <span>₹1,148</span>
+                <span>₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
 
-            <Button type="submit" variant="primary" size="lg" className="w-full">
-              Place Order Now (₹1,148)
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full"
+              disabled={isSubmitting || items.length === 0}
+            >
+              {isSubmitting
+                ? 'Processing Order...'
+                : `Place Order Now (₹${total.toLocaleString('en-IN')})`}
             </Button>
           </div>
         </div>

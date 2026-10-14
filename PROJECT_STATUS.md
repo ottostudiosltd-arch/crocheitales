@@ -16,11 +16,11 @@
 | **Phase 1** | Brand System and UI Design | 🟢 Completed | 2026-10-12 |
 | **Phase 2** | Frontend Foundation and Navigation | 🟢 Completed | 2026-10-12 |
 | **Phase 3** | Homepage and Shopping UI | 🟢 Completed | 2026-10-14 |
-| **Phase 4** | Supabase Setup and Database Design | 🟡 In Progress | 2026-10-14 |
-| **Phase 5** | Authentication, Profiles, and Authorization | ⚪ Pending | - |
-| **Phase 6** | Product Management and Storage | ⚪ Pending | - |
-| **Phase 7** | Cart, Checkout, and Order Creation | ⚪ Pending | - |
-| **Phase 8** | Secure Shiprocket Integration | ⚪ Pending | - |
+| **Phase 4** | Supabase Setup and Database Design | 🟢 Completed | 2026-10-14 |
+| **Phase 5** | Authentication, Profiles, and Authorization | 🟢 Completed | 2026-10-14 |
+| **Phase 6** | Product Management and Live Catalog Fetch | 🟢 Completed | 2026-10-14 |
+| **Phase 7** | Cart, Checkout, and Order Creation | 🟢 Completed | 2026-10-14 |
+| **Phase 8** | Secure Shiprocket Integration | 🟡 In Progress / Next | - |
 | **Phase 9** | Workshop Management and Registration | ⚪ Pending | - |
 | **Phase 10** | Reviews, Wishlist, and Customer Account | ⚪ Pending | - |
 | **Phase 11** | Admin Dashboard | ⚪ Pending | - |

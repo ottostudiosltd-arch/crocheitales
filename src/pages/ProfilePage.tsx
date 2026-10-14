@@ -1,54 +1,119 @@
 import React from 'react';
-import { MapPin, Package, Heart, LogOut, Phone, Mail, MessageCircle, ChevronRight, ShieldCheck } from 'lucide-react';
+import {
+  MapPin,
+  Package,
+  Heart,
+  LogOut,
+  Phone,
+  Mail,
+  MessageCircle,
+  ChevronRight,
+  ShieldCheck,
+  User,
+  Sparkles,
+  Lock,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 
 export const ProfilePage: React.FC = () => {
+  const { user, profile, isAdmin, signOut, openAuthModal } = useAuthStore();
+
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Valued Guest';
+  const displayEmail = user?.email || 'guest@crochietales.in';
+  const displayPhone = profile?.phone || user?.user_metadata?.phone || '+91 744 724 6150';
+  const avatarLetter = (displayName[0] || 'C').toUpperCase();
+
   return (
     <div className="max-w-4xl mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-10 space-y-5 sm:space-y-6">
       {/* 1. Profile Header Card */}
-      <div className="bg-white rounded-3xl border border-[#F2DCD1] p-5 sm:p-7 shadow-2xs flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left relative overflow-hidden">
-        {/* Soft Background Accent */}
-        <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-[#FDE8EE]/50 pointer-events-none" />
+      {user ? (
+        <div className="bg-white rounded-3xl border border-[#F2DCD1] p-5 sm:p-7 shadow-2xs flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left relative overflow-hidden">
+          {/* Soft Background Accent */}
+          <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-[#FDE8EE]/50 pointer-events-none" />
 
-        {/* User Avatar */}
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#FCEAEB] text-[#79002F] flex items-center justify-center font-serif text-2xl sm:text-3xl font-bold border-2 border-[#F3CDD5] shadow-xs shrink-0 mx-auto sm:mx-0">
-          T
-        </div>
-
-        {/* User Info */}
-        <div className="flex-1 space-y-1">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
-            <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#5C0024] tracking-wide">
-              Tausif Shaikh
-            </h1>
-            <span className="inline-flex items-center gap-1 mx-auto sm:mx-0 px-2.5 py-0.5 rounded-full bg-[#FFF0F3] text-[#79002F] text-[11px] font-semibold border border-[#FAD3DC] w-fit">
-              <ShieldCheck className="w-3 h-3" />
-              <span>Valued Crochet Lover</span>
-            </span>
+          {/* User Avatar */}
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#FCEAEB] text-[#79002F] flex items-center justify-center font-serif text-2xl sm:text-3xl font-bold border-2 border-[#F3CDD5] shadow-xs shrink-0 mx-auto sm:mx-0">
+            {avatarLetter}
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs text-[#79002F]/80 pt-0.5">
-            <span className="flex items-center gap-1">
-              <Mail className="w-3.5 h-3.5 text-[#8C5D67]" />
-              <span>tausif@example.com</span>
-            </span>
-            <span className="hidden sm:inline text-[#F3CDD5]">•</span>
-            <span className="flex items-center gap-1">
-              <Phone className="w-3.5 h-3.5 text-[#8C5D67]" />
-              <span>+91 744 724 6150</span>
-            </span>
+          {/* User Info */}
+          <div className="flex-1 space-y-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+              <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#5C0024] tracking-wide">
+                {displayName}
+              </h1>
+              <span className="inline-flex items-center gap-1 mx-auto sm:mx-0 px-2.5 py-0.5 rounded-full bg-[#FFF0F3] text-[#79002F] text-[11px] font-semibold border border-[#FAD3DC] w-fit">
+                <ShieldCheck className="w-3 h-3" />
+                <span>{isAdmin ? '👑 Store Administrator' : 'Valued Crochet Lover'}</span>
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-xs text-[#79002F]/80 pt-0.5">
+              <span className="flex items-center gap-1">
+                <Mail className="w-3.5 h-3.5 text-[#8C5D67]" />
+                <span>{displayEmail}</span>
+              </span>
+              <span className="hidden sm:inline text-[#F3CDD5]">•</span>
+              <span className="flex items-center gap-1">
+                <Phone className="w-3.5 h-3.5 text-[#8C5D67]" />
+                <span>{displayPhone}</span>
+              </span>
+            </div>
+
+            {isAdmin && (
+              <div className="pt-2">
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#79002F] text-white text-[11px] font-semibold hover:bg-[#5C0024] transition-all shadow-xs"
+                >
+                  <Lock className="w-3 h-3" />
+                  <span>Open Admin Management Panel →</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Sign Out Button */}
+          <button
+            onClick={() => signOut()}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[#F3CDD5] text-[#79002F] text-xs font-semibold hover:bg-[#FCEAEB] active:scale-95 transition-all shadow-2xs"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      ) : (
+        /* Guest / Not Logged In Banner */
+        <div className="bg-white rounded-3xl border border-[#F2DCD1] p-6 sm:p-8 shadow-2xs text-center relative overflow-hidden">
+          <div className="max-w-md mx-auto space-y-3">
+            <div className="w-14 h-14 rounded-full bg-[#FCEAEB] text-[#79002F] flex items-center justify-center mx-auto mb-2 border border-[#FAD3DC]">
+              <User className="w-7 h-7 stroke-[1.8]" />
+            </div>
+            <h2 className="font-serif font-bold text-xl sm:text-2xl text-[#5C0024]">
+              Welcome to Crochie Tales ♡
+            </h2>
+            <p className="text-xs sm:text-sm text-[#79002F]/80 leading-relaxed">
+              Sign in to track orders, save your delivery addresses, and sync your favorite handcrafted items across devices.
+            </p>
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => openAuthModal('signin')}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#79002F] text-white text-xs sm:text-sm font-semibold hover:bg-[#5C0024] active:scale-95 transition-all shadow-md flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Sign In / Create Account</span>
+              </button>
+              <Link
+                to="/shop"
+                className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#FFF8F3] border border-[#F2DCD1] text-[#79002F] text-xs sm:text-sm font-semibold hover:bg-[#FCEAEB] transition-all"
+              >
+                Browse Shop
+              </Link>
+            </div>
           </div>
         </div>
-
-        {/* Sign Out Button */}
-        <button
-          onClick={() => alert('Signed out successfully')}
-          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[#F3CDD5] text-[#79002F] text-xs font-semibold hover:bg-[#FCEAEB] active:scale-95 transition-all shadow-2xs"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>Sign Out</span>
-        </button>
-      </div>
+      )}
 
       {/* 2. Quick Stat Counters */}
       <div className="grid grid-cols-3 gap-2.5 sm:gap-4">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { ProductCard, type Product } from '../components/shop/ProductCard';
 import { asset } from '../utils/asset';
+import { fetchProducts } from '../services/productService';
 
 // Custom icons matching client mockup
 const BowIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -56,7 +57,7 @@ export const ShopPage: React.FC = () => {
     { label: 'Gift Sets', icon: Gift },
   ];
 
-  const products: Product[] = [
+  const initialProducts: Product[] = [
     {
       id: 'prod-1',
       slug: 'tulip-crochet-bouquet',
@@ -210,6 +211,16 @@ export const ShopPage: React.FC = () => {
       inStock: true,
     },
   ];
+ 
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+
+  useEffect(() => {
+    fetchProducts().then((dbProducts) => {
+      if (dbProducts && dbProducts.length > 0) {
+        setProducts(dbProducts);
+      }
+    });
+  }, []);
 
   const handleAddToCart = (product: Product) => {
     setToastMessage(`Added "${product.title}" to cart! ♡`);

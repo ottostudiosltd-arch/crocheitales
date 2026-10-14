@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, Trash2, ArrowRight, Truck } from 'lucide-react';
+import { X, Trash2, ArrowRight, Truck, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../ui/Button';
+import { useCartStore } from '../../stores/cartStore';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -9,33 +10,17 @@ interface CartDrawerProps {
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
+  const { items: cartItems, removeItem, getSubtotal } = useCartStore();
+
   if (!isOpen) return null;
 
-  // Sample drawer state (integrated with Zustand in Phase 7)
-  const cartItems = [
-    {
-      id: 'prod-1',
-      title: 'Tulip Crochet Bouquet',
-      price: 899,
-      quantity: 1,
-      imageUrl: 'https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=300&auto=format&fit=crop&q=80',
-    },
-    {
-      id: 'prod-2',
-      title: 'Bow Hair Clip (Pink)',
-      price: 249,
-      quantity: 1,
-      imageUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=300&auto=format&fit=crop&q=80',
-    },
-  ];
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = getSubtotal();
   const freeShippingThreshold = 999;
   const isFreeShipping = subtotal >= freeShippingThreshold;
-  const remainingForFreeShipping = freeShippingThreshold - subtotal;
+  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between border-l border-brand-border">
         {/* Drawer Header */}
         <div className="p-5 border-b border-brand-border/80 flex items-center justify-between">
@@ -49,7 +34,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-brand-text-muted hover:text-brand-burgundy hover:bg-brand-softPink/50"
+            className="p-1.5 rounded-full text-brand-text-muted hover:text-brand-burgundy hover:bg-brand-softPink/50 transition-colors"
             aria-label="Close cart"
           >
             <X className="w-5 h-5" />
@@ -76,60 +61,84 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
         {/* Items List */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4 divide-y divide-brand-border/40">
-          {cartItems.map((item) => (
-            <div key={item.id} className="pt-4 first:pt-0 flex items-center gap-3">
-              <img
-                src={item.imageUrl}
-                alt={item.title}
-                className="w-16 h-16 rounded-xl object-cover border border-brand-border/60 shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium text-brand-text-primary truncate">
-                  {item.title}
-                </h4>
-                <div className="flex items-center justify-between mt-1 text-xs text-brand-text-muted">
-                  <span>Qty: {item.quantity}</span>
-                  <span className="font-bold text-brand-burgundy text-sm">
-                    ₹{item.price * item.quantity}
-                  </span>
-                </div>
+          {cartItems.length === 0 ? (
+            <div className="py-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-[#FCEAEB] text-[#79002F] flex items-center justify-center mx-auto">
+                <ShoppingBag className="w-6 h-6 stroke-[1.8]" />
               </div>
-              <button
-                className="p-1.5 text-brand-text-muted hover:text-red-600 transition-colors"
-                aria-label="Remove item"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <h3 className="font-serif font-bold text-base text-[#5C0024]">Your bag is empty</h3>
+              <p className="text-xs text-[#79002F]/70 max-w-xs mx-auto">
+                Looks like you haven’t added any handcrafted treasures yet.
+              </p>
+              <div className="pt-2">
+                <Link
+                  to="/shop"
+                  onClick={onClose}
+                  className="inline-flex px-4 py-2 rounded-full bg-[#79002F] text-white text-xs font-semibold hover:bg-[#5C0024] shadow-xs"
+                >
+                  Explore Creations →
+                </Link>
+              </div>
             </div>
-          ))}
+          ) : (
+            cartItems.map((item) => (
+              <div key={item.id} className="pt-4 first:pt-0 flex items-center gap-3">
+                <img
+                  src={item.imageUrl}
+                  alt={item.title}
+                  className="w-16 h-16 rounded-xl object-cover border border-brand-border/60 shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-medium text-brand-text-primary truncate">
+                    {item.title}
+                  </h4>
+                  <div className="flex items-center justify-between mt-1 text-xs text-brand-text-muted">
+                    <span>Qty: {item.quantity}</span>
+                    <span className="font-bold text-brand-burgundy text-sm">
+                      ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => removeItem(item.id)}
+                  className="p-1.5 text-brand-text-muted hover:text-red-600 transition-colors"
+                  aria-label="Remove item"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Drawer Footer & Checkout CTA */}
-        <div className="p-5 border-t border-brand-border bg-brand-cream/30 space-y-3">
-          <div className="flex items-center justify-between text-base">
-            <span className="text-brand-text-muted font-normal">Subtotal</span>
-            <span className="font-bold text-xl text-brand-burgundy">
-              ₹{subtotal.toLocaleString('en-IN')}
-            </span>
-          </div>
+        {cartItems.length > 0 && (
+          <div className="p-5 border-t border-brand-border bg-brand-cream/30 space-y-3">
+            <div className="flex items-center justify-between text-base">
+              <span className="text-brand-text-muted font-normal">Subtotal</span>
+              <span className="font-bold text-xl text-brand-burgundy">
+                ₹{subtotal.toLocaleString('en-IN')}
+              </span>
+            </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <Link to="/cart" onClick={onClose} className="w-full">
-              <Button variant="outline" className="w-full">
-                View Bag
-              </Button>
-            </Link>
-            <Link to="/checkout" onClick={onClose} className="w-full">
-              <Button
-                variant="primary"
-                className="w-full"
-                rightIcon={<ArrowRight className="w-4 h-4" />}
-              >
-                Checkout
-              </Button>
-            </Link>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <Link to="/cart" onClick={onClose} className="w-full">
+                <Button variant="outline" className="w-full">
+                  View Bag
+                </Button>
+              </Link>
+              <Link to="/checkout" onClick={onClose} className="w-full">
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  rightIcon={<ArrowRight className="w-4 h-4" />}
+                >
+                  Checkout
+                </Button>
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
