@@ -6,6 +6,8 @@ import { Badge } from '../components/ui/Badge';
 import { fetchProductBySlug } from '../services/productService';
 import { minorToMajor } from '../lib/supabase';
 import { useCartStore } from '../stores/cartStore';
+import { asset } from '../utils/asset';
+
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -40,7 +42,7 @@ export const ProductDetailPage: React.FC = () => {
     rating: 4.8,
     reviewCount: 124,
     images: [
-      '/images/products/tulip-bouquet.webp',
+      asset('/images/products/tulip-bouquet.webp'),
       'https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=800&auto=format&fit=crop&q=80',
       'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80',
     ],
@@ -59,7 +61,7 @@ export const ProductDetailPage: React.FC = () => {
     fetchProductBySlug(slug).then((data) => {
       if (data) {
         const imageList = data.product_images?.length
-          ? data.product_images.sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => img.image_url)
+          ? data.product_images.sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => asset(img.image_url))
           : defaultProduct.images;
 
         setProduct({
@@ -88,7 +90,7 @@ export const ProductDetailPage: React.FC = () => {
         title: product.title,
         price: product.price,
         originalPrice: product.originalPrice,
-        imageUrl: product.images[0] || '/images/products/tulip-bouquet.webp',
+        imageUrl: asset(product.images[0] || '/images/products/tulip-bouquet.webp'),
       },
       quantity
     );
@@ -120,7 +122,7 @@ export const ProductDetailPage: React.FC = () => {
         <div className="lg:col-span-7 space-y-4">
           <div className="w-full aspect-square rounded-3xl overflow-hidden border border-brand-border bg-white shadow-soft">
             <img
-              src={product.images[selectedImage] || product.images[0]}
+              src={asset(product.images[selectedImage] || product.images[0])}
               alt={product.title}
               className="w-full h-full object-cover transition-all duration-300"
             />
@@ -137,7 +139,7 @@ export const ProductDetailPage: React.FC = () => {
                     : 'border-brand-border hover:opacity-80'
                 }`}
               >
-                <img src={img} alt="Thumbnail" className="w-full h-full object-cover" />
+                <img src={asset(img)} alt="Thumbnail" className="w-full h-full object-cover" />
               </button>
             ))}
           </div>

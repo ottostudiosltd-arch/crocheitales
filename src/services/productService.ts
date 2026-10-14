@@ -1,5 +1,6 @@
 import { supabase, minorToMajor } from '../lib/supabase';
 import type { Product } from '../components/shop/ProductCard';
+import { asset } from '../utils/asset';
 
 export interface FetchProductsOptions {
   categorySlug?: string;
@@ -12,7 +13,7 @@ export interface FetchProductsOptions {
  * Maps database product row to frontend Product interface
  */
 export function mapDatabaseProduct(row: any): Product {
-  const primaryImg = row.product_images?.find((img: any) => img.is_primary)?.image_url
+  const rawImg = row.product_images?.find((img: any) => img.is_primary)?.image_url
     || row.product_images?.[0]?.image_url
     || '/images/products/daisy-keychain.webp';
 
@@ -24,7 +25,7 @@ export function mapDatabaseProduct(row: any): Product {
     originalPrice: row.compare_at_price_minor ? minorToMajor(row.compare_at_price_minor) : undefined,
     rating: row.rating ? Number(row.rating) : 5.0,
     reviewCount: row.review_count || 0,
-    imageUrl: primaryImg,
+    imageUrl: asset(rawImg),
     category: row.categories?.name,
     tag: row.tag as 'Bestseller' | 'Sale' | 'New' | undefined,
     inStock: (row.stock_quantity ?? 0) > 0,
@@ -110,7 +111,9 @@ export async function fetchProducts(options: FetchProductsOptions = {}): Promise
  */
 export async function fetchProductBySlug(slug: string): Promise<any> {
   try {
-    const { data, error } = await supabase
+    const targetSlug = slug === 'tulip-crochet-bouquet' ? 'tulip-bouquet' : slug;
+
+    const initialQuery = await supabase
       .from('products')
       .select(`
         *,
@@ -127,12 +130,50 @@ export async function fetchProductBySlug(slug: string): Promise<any> {
           is_primary
         )
       `)
-      .eq('slug', slug)
+      .or(`slug.eq.${slug},slug.eq.${targetSlug}`)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) {
+    let data: any = initialQuery.data;
+
+    if (!data) {
+      // Fallback matching first segment of slug
+      const prefix = slug.split('-')[0];
+      const fallbackQuery: any = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories (
+            id,
+            name,
+            slug
+          ),
+          product_images (
+            id,
+            image_url,
+            alt_text,
+            sort_order,
+            is_primary
+          )
+        `)
+        .ilike('slug', `%${prefix}%`)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+
+      data = fallbackQuery.data;
+    }
+
+    if (!data) {
       return null;
+    }
+
+    // Map all product image URLs through asset()
+    if (data.product_images && Array.isArray(data.product_images)) {
+      data.product_images = data.product_images.map((img: any) => ({
+        ...img,
+        image_url: asset(img.image_url),
+      }));
     }
 
     return data;
