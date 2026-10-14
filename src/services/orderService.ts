@@ -95,10 +95,12 @@ export async function placeOrder(params: PlaceOrderParams): Promise<PlaceOrderRe
 }
 
 /**
- * Fetch orders for the current customer or recent guest orders
+ * Fetch orders for the current customer or recent guest order numbers
  */
-export async function fetchUserOrders(customerId?: string) {
+export async function fetchUserOrders(options: { customerId?: string; orderNumbers?: string[] } | string = {}) {
   try {
+    const opts = typeof options === 'string' ? { customerId: options } : options;
+
     let query = supabase
       .from('orders')
       .select(`
@@ -120,8 +122,10 @@ export async function fetchUserOrders(customerId?: string) {
       `)
       .order('created_at', { ascending: false });
 
-    if (customerId) {
-      query = query.eq('customer_id', customerId);
+    if (opts.orderNumbers && opts.orderNumbers.length > 0) {
+      query = query.in('order_number', opts.orderNumbers);
+    } else if (opts.customerId) {
+      query = query.eq('customer_id', opts.customerId);
     } else {
       query = query.limit(5);
     }
@@ -136,6 +140,42 @@ export async function fetchUserOrders(customerId?: string) {
   } catch (err) {
     console.error('Error in fetchUserOrders:', err);
     return [];
+  }
+}
+
+/**
+ * Look up a specific order by its order number (e.g. CT-123456)
+ */
+export async function fetchOrderByNumber(orderNumber: string) {
+  try {
+    const cleanNumber = orderNumber.trim().replace(/^#/, '');
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        order_number,
+        status,
+        payment_status,
+        payment_method,
+        total_amount_minor,
+        shipping_amount_minor,
+        created_at,
+        order_items (
+          id,
+          title_snapshot,
+          price_snapshot_minor,
+          quantity,
+          total_minor
+        )
+      `)
+      .ilike('order_number', cleanNumber)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data;
+  } catch (err) {
+    console.error('Error in fetchOrderByNumber:', err);
+    return null;
   }
 }
 

@@ -62,3 +62,17 @@ This document records key architectural, design, and security decisions made dur
 - **Status:** Approved
 - **Decision:** Shiprocket credentials will strictly reside in server-side environment variables / Supabase Edge Functions. No Shiprocket API keys will ever be bundled or accessible to the browser client.
 - **Rationale:** Strict adherence to project security guidelines and prevents unauthorized shipping order creation or token theft.
+
+---
+
+## ADR-007: Zero-Login Customer Experience & Admin-Only Authentication
+- **Date:** 2026-10-14
+- **Status:** Approved
+- **Decision:**
+  - Customer login is completely optional/not required. Zero checkout friction.
+  - Delivery details can be saved in local storage (`useCustomerStore`) with 1-click checkout pre-fill.
+  - Customers can track orders directly via order lookup or local device history.
+  - Authentication is strictly enforced on `/admin` via Supabase Auth for store management.
+  - Shiprocket tracking link is generated and presented immediately upon order placement and order history.
+- **Rationale:** Dramatically maximizes conversion rate for boutique handcrafted items while maintaining robust security for store operations.
+

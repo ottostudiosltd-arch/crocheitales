@@ -6,7 +6,6 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { SearchModal } from './SearchModal';
 import { CartDrawer } from '../cart/CartDrawer';
 import { ScrollToHashElement } from './ScrollToHashElement';
-import { AuthModal } from '../auth/AuthModal';
 import { useAuthStore } from '../../stores/authStore';
 
 export const AppLayout: React.FC = () => {
@@ -40,7 +39,6 @@ export const AppLayout: React.FC = () => {
         isOpen={cartOpen}
         onClose={() => setCartOpen(false)}
       />
-      <AuthModal />
     </div>
   );
 };

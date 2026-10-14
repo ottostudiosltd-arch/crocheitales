@@ -1,7 +1,7 @@
 # Crochie Tales - Project Status Tracker
 
-**Current Phase:** Phase 4: Supabase Setup and Database Design (In Progress)  
-**Last Verified Checkpoint:** Connected Supabase credentials (`rclxmrnzqpcdnojxahem`), installed `@supabase/supabase-js`, created TypeScript database definitions, initialized client with price conversion utilities, and generated full PostgreSQL schema & seed migration script. Production build (`tsc -b && vite build`) passed with 0 errors.  
+**Current Phase:** Phase 9: Workshop Management and Registration (Next)  
+**Last Verified Checkpoint:** Completed zero-login customer checkout, 1-click delivery info persistence in customerStore, admin-only Supabase Auth gate for /admin, permanent Supabase PostgreSQL order recording, and Phase 8 Shiprocket fulfillment integration with AWB generation & live tracking links. Production build verification (`tsc -b && vite build`) passed in 10.51s with 0 errors.  
 **Date:** 2026-10-14  
 **Project Lead:** Tausif Shaikh (Client Project: Crochei Tales)  
 **Primary Tech Stack:** React (Vite) + TypeScript + Tailwind CSS + Zustand + Supabase + Shiprocket  
@@ -20,8 +20,8 @@
 | **Phase 5** | Authentication, Profiles, and Authorization | 🟢 Completed | 2026-10-14 |
 | **Phase 6** | Product Management and Live Catalog Fetch | 🟢 Completed | 2026-10-14 |
 | **Phase 7** | Cart, Checkout, and Order Creation | 🟢 Completed | 2026-10-14 |
-| **Phase 8** | Secure Shiprocket Integration | 🟡 In Progress / Next | - |
-| **Phase 9** | Workshop Management and Registration | ⚪ Pending | - |
+| **Phase 8** | Secure Shiprocket Integration | 🟢 Completed | 2026-10-14 |
+| **Phase 9** | Workshop Management and Registration | 🟡 Next Up | - |
 | **Phase 10** | Reviews, Wishlist, and Customer Account | ⚪ Pending | - |
 | **Phase 11** | Admin Dashboard | ⚪ Pending | - |
 | **Phase 12** | Quality Assurance, Security, and Performance | ⚪ Pending | - |
