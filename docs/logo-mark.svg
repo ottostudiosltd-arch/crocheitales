@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Soft pink background circle -->
+  <circle cx="24" cy="24" r="23" fill="#FBE0E6" stroke="#C77D91" stroke-width="1.5"/>
+  <!-- Yarn heart in dusty rose & pink with texture -->
+  <path d="M24 37C24 37 13 29 13 20C13 15.5 16.5 12 21 12C22.8 12 23.6 13 24 14C24.4 13 25.2 12 27 12C31.5 12 35 15.5 35 20C35 29 24 37 24 37Z" fill="#C77D91"/>
+  <!-- Yarn thread windings -->
+  <path d="M16 19C18 22 22 26 25 32" stroke="#F2B8C5" stroke-width="2" stroke-linecap="round"/>
+  <path d="M21 14C23 18 26 23 29 29" stroke="#F8F1E5" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M28 14C26 19 22 25 18 31" stroke="#FBE0E6" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Crochet hook / needle -->
+  <path d="M12 36L34 14" stroke="#79002F" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M33 13C35 12 36.5 13.5 35 15" stroke="#79002F" stroke-width="2" stroke-linecap="round"/>
+</svg>
