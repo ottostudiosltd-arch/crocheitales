@@ -10,6 +10,7 @@ import {
   Check,
 } from 'lucide-react';
 import { ProductCard, type Product } from '../components/shop/ProductCard';
+import { asset } from '../utils/asset';
 
 // Custom icons matching client mockup
 const BowIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -64,7 +65,7 @@ export const ShopPage: React.FC = () => {
       originalPrice: 1299,
       rating: 4.8,
       reviewCount: 124,
-      imageUrl: '/images/products/tulip-bouquet.png',
+      imageUrl: asset('/images/products/tulip-bouquet.png'),
       category: 'Flower Bouquets',
       tag: 'Bestseller',
       inStock: true,
@@ -77,7 +78,7 @@ export const ShopPage: React.FC = () => {
       originalPrice: 249,
       rating: 4.6,
       reviewCount: 98,
-      imageUrl: '/images/products/bow-hair-clip.png',
+      imageUrl: asset('/images/products/bow-hair-clip.png'),
       category: 'Hair Accessories',
       tag: 'Sale',
       inStock: true,
@@ -89,7 +90,7 @@ export const ShopPage: React.FC = () => {
       price: 199,
       rating: 4.7,
       reviewCount: 76,
-      imageUrl: '/images/products/daisy-keychain.png',
+      imageUrl: asset('/images/products/daisy-keychain.png'),
       category: 'Keychains',
       inStock: true,
     },
@@ -100,7 +101,7 @@ export const ShopPage: React.FC = () => {
       price: 299,
       rating: 4.9,
       reviewCount: 45,
-      imageUrl: '/images/products/cherry-bag-charm.png',
+      imageUrl: asset('/images/products/cherry-bag-charm.png'),
       category: 'Keychains',
       tag: 'New',
       inStock: true,

@@ -4,6 +4,7 @@ import { Truck, Heart, Gift, Sparkles, ChevronRight, ArrowRight, Mail, ExternalL
 import heroImage from '../assets/hero.png';
 import categoryBg from '../assets/Shop by Category.png';
 import contactBg from '../assets/contact.png';
+import { asset } from '../utils/asset';
 
 export const HomePage: React.FC = () => {
   // 6 Categories matching the client's mockup & card design
@@ -12,42 +13,42 @@ export const HomePage: React.FC = () => {
       title: 'Hair Accessories',
       subtitle: 'Clips, scrunchies & more',
       slug: 'hair-accessories',
-      image: '/images/mockup/cat-hair-accessories.png',
+      image: asset('/images/mockup/cat-hair-accessories.png'),
       badge: '🎀',
     },
     {
       title: 'Keychains',
       subtitle: 'Cute charms & bag tags',
       slug: 'keychains',
-      image: '/images/mockup/cat-keychains.png',
+      image: asset('/images/mockup/cat-keychains.png'),
       badge: '✨',
     },
     {
       title: 'Flower Bouquets',
       subtitle: 'Everlasting floral blooms',
       slug: 'flower-bouquets',
-      image: '/images/mockup/cat-flower-bouquets.png',
+      image: asset('/images/mockup/cat-flower-bouquets.png'),
       badge: '🌸',
     },
     {
       title: 'Wearables',
       subtitle: 'Tops, hats & mufflers',
       slug: 'wearables',
-      image: '/images/mockup/cat-wearables.png',
+      image: asset('/images/mockup/cat-wearables.png'),
       badge: '🧶',
     },
     {
       title: 'Plushies',
       subtitle: 'Soft snuggly companions',
       slug: 'plushies',
-      image: '/images/mockup/cat-plushies.png',
+      image: asset('/images/mockup/cat-plushies.png'),
       badge: '🧸',
     },
     {
       title: 'Other Things',
       subtitle: 'Bookmarks, coasters & more',
       slug: 'other-things',
-      image: '/images/mockup/cat-other-things.png',
+      image: asset('/images/mockup/cat-other-things.png'),
       badge: '♡',
     },
   ];
@@ -81,7 +82,7 @@ export const HomePage: React.FC = () => {
             style={{ top: '24%', width: 'min(380px, 45%)' }}
           >
             <img
-              src="/branding/crochie-tales-logo-transparent.png"
+              src={asset('/branding/crochie-tales-logo-transparent.png')}
               alt="Crochei Tales"
               className="w-full h-auto max-h-[140px] sm:max-h-[170px] md:max-h-[200px] object-contain drop-shadow-xs"
             />

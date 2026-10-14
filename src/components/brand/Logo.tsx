@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { asset } from '../../utils/asset';
 
 interface LogoProps {
   variant?: 'burgundy' | 'white';
@@ -29,7 +30,7 @@ export const Logo: React.FC<LogoProps> = ({
       aria-label="Crochei Tales Home"
     >
       <img
-        src={isWhite ? '/branding/crochie-tales-logo-white.png' : '/branding/crochie-tales-logo-transparent.png'}
+        src={isWhite ? asset('/branding/crochie-tales-logo-white.png') : asset('/branding/crochie-tales-logo-transparent.png')}
         alt="Crochei Tales"
         className={`${sizeClasses[size]} w-auto object-contain`}
       />
