@@ -11,7 +11,7 @@ export const CheckoutPage: React.FC = () => {
   const { items, getSubtotal, clearCart } = useCartStore();
   const { profile, setProfile, addOrderNumber } = useCustomerStore();
 
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
+  const paymentMethod = 'cod';
   const [saveDetails, setSaveDetails] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -349,57 +349,41 @@ export const CheckoutPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Payment Method Selection */}
+          {/* Payment Method - Cash on Delivery Exclusive */}
           <div className="bg-white rounded-3xl border border-brand-border/70 p-6 sm:p-8 shadow-soft space-y-4">
-            <h2 className="font-serif text-xl text-brand-burgundy font-normal pb-2 border-b border-brand-border">
-              Payment Method
-            </h2>
-
-            <div className="space-y-3">
-              <label
-                onClick={() => setPaymentMethod('cod')}
-                className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                  paymentMethod === 'cod'
-                    ? 'border-brand-burgundy bg-brand-softPink/30'
-                    : 'border-brand-border/60 hover:bg-brand-cream/40'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    paymentMethod === 'cod' ? 'border-brand-burgundy' : 'border-brand-text-muted'
-                  }`}>
-                    {paymentMethod === 'cod' && <div className="w-2 h-2 rounded-full bg-brand-burgundy" />}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-brand-text-primary">Cash on Delivery (COD)</p>
-                    <p className="text-xs text-brand-text-muted">Pay comfortably upon delivery across India</p>
-                  </div>
-                </div>
-                <Truck className="w-5 h-5 text-brand-burgundy" />
-              </label>
-
-              <label
-                onClick={() => setPaymentMethod('online')}
-                className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                  paymentMethod === 'online'
-                    ? 'border-brand-burgundy bg-brand-softPink/30'
-                    : 'border-brand-border/60 hover:bg-brand-cream/40'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    paymentMethod === 'online' ? 'border-brand-burgundy' : 'border-brand-text-muted'
-                  }`}>
-                    {paymentMethod === 'online' && <div className="w-2 h-2 rounded-full bg-brand-burgundy" />}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-brand-text-primary">Online UPI / Cards / NetBanking</p>
-                    <p className="text-xs text-brand-text-muted">Instant, encrypted payment processing</p>
-                  </div>
-                </div>
-                <ShieldCheck className="w-5 h-5 text-brand-burgundy" />
-              </label>
+            <div className="flex items-center justify-between pb-2 border-b border-brand-border">
+              <h2 className="font-serif text-xl text-brand-burgundy font-normal">
+                Payment Method
+              </h2>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                COD Active
+              </span>
             </div>
+
+            <div className="p-4 rounded-2xl border-2 border-brand-burgundy bg-brand-softPink/30 flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                <div className="w-9 h-9 rounded-full bg-brand-burgundy text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-sm text-brand-burgundy">Cash on Delivery (COD)</p>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                      Zero Risk
+                    </span>
+                  </div>
+                  <p className="text-xs text-brand-text-muted mt-0.5">
+                    Pay comfortably in cash or via courier UPI upon doorstep delivery across India.
+                  </p>
+                </div>
+              </div>
+              <CheckCircle2 className="w-5 h-5 text-brand-burgundy shrink-0" />
+            </div>
+            
+            <p className="text-[11px] text-brand-text-muted/80 flex items-center gap-1.5 pt-1">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Each handcrafted piece is carefully wrapped and dispatched with love.</span>
+            </p>
           </div>
         </div>
 
