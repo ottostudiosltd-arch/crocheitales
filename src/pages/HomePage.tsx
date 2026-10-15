@@ -12,7 +12,6 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import heroImage from '../assets/hero.webp';
-import heroMobileImage from '../assets/hero-mobile.webp';
 import promoGiftBox from '../assets/promo-gift-box.webp';
 import categoryBg from '../assets/Shop by Category.webp';
 import contactBg from '../assets/contact.webp';
@@ -177,11 +176,11 @@ export const HomePage: React.FC = () => {
       <div className="block lg:hidden px-3 pt-2.5 pb-6 space-y-4">
         {/* 1. Mobile Hero Banner Card (Using new hero-mobile.png) */}
         <section className="relative rounded-3xl overflow-hidden border border-[#FAD3DC]/80 shadow-xs aspect-[1.85/1] min-h-[195px] flex items-center bg-[#FDE7EC]">
-          {/* New Hero Mobile Image */}
+          {/* Hero Image (Unified with PC) */}
           <img
-            src={heroMobileImage}
+            src={heroImage}
             alt="Crochei Tales - Handmade for Brighter Days"
-            className="absolute inset-0 w-full h-full object-cover object-right select-none pointer-events-none"
+            className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
             loading="eager"
             decoding="sync"
           />

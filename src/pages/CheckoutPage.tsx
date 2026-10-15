@@ -7,6 +7,13 @@ import { useCustomerStore } from '../stores/customerStore';
 import { placeOrder } from '../services/orderService';
 import { createShiprocketShipment } from '../services/shiprocketService';
 import { sendTelegramOrderAlert } from '../services/telegramService';
+import {
+  sanitizeInput,
+  isValidIndianPhone,
+  isValidIndianPincode,
+  checkCheckoutRateLimit,
+  recordCheckoutAttempt,
+} from '../utils/security';
 
 export const CheckoutPage: React.FC = () => {
   const { items, getSubtotal, clearCart } = useCartStore();
@@ -16,6 +23,7 @@ export const CheckoutPage: React.FC = () => {
   const [saveDetails, setSaveDetails] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState('');
 
   // Success Confirmation State
   const [confirmedOrder, setConfirmedOrder] = useState<{
@@ -56,19 +64,53 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
+    // 1. Anti-bot honeypot check (silently drop bot attempts)
+    if (honeypot) {
+      console.warn('Bot submission blocked via honeypot.');
+      return;
+    }
+
+    // 2. Anti-spam Rate Limiting
+    const rateCheck = checkCheckoutRateLimit();
+    if (!rateCheck.allowed) {
+      setErrorMessage(rateCheck.message || 'Please wait before placing another order.');
+      return;
+    }
+
+    // 3. Indian Phone Validation
+    if (!isValidIndianPhone(phone)) {
+      setErrorMessage('Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).');
+      return;
+    }
+
+    // 4. Indian PIN code Validation
+    if (!isValidIndianPincode(postalCode)) {
+      setErrorMessage('Please enter a valid 6-digit Indian PIN code (e.g. 411001).');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
+
+    // Sanitize user inputs
+    const cleanFullName = sanitizeInput(fullName);
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const cleanEmail = sanitizeInput(email);
+    const cleanAddress = sanitizeInput(addressLine1);
+    const cleanCity = sanitizeInput(city);
+    const cleanState = sanitizeInput(state);
+    const cleanPostalCode = postalCode.replace(/\D/g, '').slice(0, 6);
 
     // Save details locally if user checked the box
     if (saveDetails) {
       setProfile({
-        fullName,
-        phone,
-        email,
-        addressLine1,
-        city,
-        state,
-        postalCode,
+        fullName: cleanFullName,
+        phone: cleanPhone,
+        email: cleanEmail,
+        addressLine1: cleanAddress,
+        city: cleanCity,
+        state: cleanState,
+        postalCode: cleanPostalCode,
       });
     }
 
@@ -80,17 +122,18 @@ export const CheckoutPage: React.FC = () => {
       total,
       paymentMethod,
       shippingAddress: {
-        fullName,
-        phone,
-        email,
-        addressLine1,
-        city,
-        state,
-        postalCode,
+        fullName: cleanFullName,
+        phone: cleanPhone,
+        email: cleanEmail,
+        addressLine1: cleanAddress,
+        city: cleanCity,
+        state: cleanState,
+        postalCode: cleanPostalCode,
       },
     });
 
     if (result.success && result.orderNumber && result.orderId) {
+      recordCheckoutAttempt();
       // 2. Generate Shiprocket Shipment & Tracking Code (Phase 8)
       const shipment = await createShiprocketShipment({
         orderId: result.orderId,
@@ -247,6 +290,18 @@ export const CheckoutPage: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        {/* Anti-Bot Honeypot Trap (Invisible to humans, catches automated spam bots) */}
+        <input
+          type="text"
+          name="b_website_trap"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0 }}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+        />
+
         {/* Customer & Shipping Details Form */}
         <div className="lg:col-span-7 space-y-6">
           <div className="bg-white rounded-3xl border border-brand-border/70 p-6 sm:p-8 shadow-soft space-y-4">

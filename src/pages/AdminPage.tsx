@@ -19,6 +19,11 @@ import { useAuthStore } from '../stores/authStore';
 import { ImageOptimizerUpload } from '../components/admin/ImageOptimizerUpload';
 import { ProductManager } from '../components/admin/ProductManager';
 import { OrderManager } from '../components/admin/OrderManager';
+import {
+  checkAdminLockout,
+  recordFailedAdminAttempt,
+  resetAdminAttempts,
+} from '../utils/security';
 
 export const AdminPage: React.FC = () => {
   const { user, isAdmin, signIn, signOut } = useAuthStore();
@@ -58,12 +63,27 @@ export const AdminPage: React.FC = () => {
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+
+    // 1. Check brute-force lockout
+    const lockout = checkAdminLockout();
+    if (lockout.locked) {
+      setLoginError(`Security Lockout: Too many failed attempts. Please wait ${lockout.remainingSec}s before retrying.`);
+      return;
+    }
+
     setIsAuthenticating(true);
 
     try {
       const { error } = await signIn(adminEmail, adminPassword);
       if (error) {
-        setLoginError(error);
+        const attemptResult = recordFailedAdminAttempt();
+        if (attemptResult.locked) {
+          setLoginError('Security Lockout: Maximum failed attempts exceeded. Form locked for 3 minutes.');
+        } else {
+          setLoginError(`${error} (${attemptResult.remainingAttempts} attempts remaining before temporary lockout)`);
+        }
+      } else {
+        resetAdminAttempts();
       }
     } finally {
       setIsAuthenticating(false);

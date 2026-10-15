@@ -48,11 +48,25 @@ export function mapDatabaseProduct(row: any): Product {
   };
 }
 
+// Memory Cache to protect Supabase from repeated query spam
+interface CacheEntry {
+  data: Product[];
+  timestamp: number;
+}
+const productsCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 120000; // 2 minutes TTL
+
 /**
- * Fetch products from Supabase with optional filters
+ * Fetch products from Supabase with optional filters & memory cache
  */
 export async function fetchProducts(options: FetchProductsOptions = {}): Promise<Product[]> {
   try {
+    const cacheKey = JSON.stringify(options);
+    const cached = productsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.data;
+    }
+
     let query = supabase
       .from('products')
       .select(`
@@ -114,6 +128,9 @@ export async function fetchProducts(options: FetchProductsOptions = {}): Promise
         (p) => p.category?.toLowerCase() === options.categorySlug?.toLowerCase()
       );
     }
+
+    // Cache results for 2 minutes to protect free tier
+    productsCache.set(cacheKey, { data: products, timestamp: Date.now() });
 
     return products;
   } catch (err) {
@@ -320,6 +337,7 @@ export async function createProduct(input: CreateProductInput): Promise<{ succes
       }
     }
 
+    productsCache.clear();
     return { success: true, data: product };
   } catch (err: any) {
     console.error('Error in createProduct:', err);
@@ -362,6 +380,7 @@ export async function updateProduct(
       return { success: false, error: error.message };
     }
 
+    productsCache.clear();
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Failed to update product' };
@@ -381,6 +400,7 @@ export async function deleteProduct(id: string): Promise<{ success: boolean; err
       return { success: false, error: error.message };
     }
 
+    productsCache.clear();
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Failed to delete product' };
