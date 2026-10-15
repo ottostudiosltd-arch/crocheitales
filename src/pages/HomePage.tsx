@@ -12,6 +12,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import heroImage from '../assets/hero.webp';
+import heroMobileImage from '../assets/hero-mobile.webp';
 import promoGiftBox from '../assets/promo-gift-box.webp';
 import categoryBg from '../assets/Shop by Category.webp';
 import contactBg from '../assets/contact.webp';
@@ -174,50 +175,58 @@ export const HomePage: React.FC = () => {
       {/* MOBILE HOME VIEW (< lg) - Rebuilt to precisely match client reference mockup */}
       {/* ========================================================================= */}
       <div className="block lg:hidden px-3 pt-2.5 pb-6 space-y-4">
-        {/* 1. Mobile Hero Banner Card (Using new hero-mobile.png) */}
-        <section className="relative rounded-3xl overflow-hidden border border-[#FAD3DC]/80 shadow-xs aspect-[1.85/1] min-h-[195px] flex items-center bg-[#FDE7EC]">
-          {/* Hero Image (Unified with PC) */}
+        {/* 1. Mobile Hero Banner Card (Using optimized 1024x570 hero-mobile.webp) */}
+        <section className="relative rounded-3xl overflow-hidden border border-[#FAD3DC]/80 shadow-xs aspect-[1024/570] flex items-center justify-center bg-[#FDE7EC]">
+          {/* Compressed Mobile Hero Image (Sunflower left, octopus right, clean pink center) */}
           <img
-            src={heroImage}
+            src={heroMobileImage}
             alt="Crochei Tales - Handmade for Brighter Days"
             className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
             loading="eager"
             decoding="sync"
           />
 
-          {/* Left Text Overlay */}
-          <div className="relative z-10 pl-3.5 xs:pl-4 sm:pl-5 pr-2 py-3 flex flex-col justify-between h-full max-w-[62%]">
-            <div>
-              <div className="flex items-center gap-1">
-                <span className="text-[8.5px] xs:text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#79002F]">
-                  Little Threads, Big Happiness
-                </span>
-                <span className="text-[#C77D91] font-handwriting text-xs">♡</span>
-              </div>
-
-              <h1 className="font-serif font-bold text-lg xs:text-xl text-[#5C0024] leading-[1.12] mt-1 tracking-tight">
-                Handmade <br />
-                for Brighter <br />
-                Days <span className="inline-block text-base">🌸</span>
-              </h1>
+          {/* Centered Content Overlay (Sits perfectly between left sunflower & right octopus polaroids) */}
+          <div className="relative z-10 w-[48%] max-w-[210px] mx-auto text-center flex flex-col items-center justify-center py-1 px-1">
+            {/* Eyebrow */}
+            <div className="flex items-center justify-center gap-1">
+              <span className="text-[7.5px] xs:text-[8.5px] font-bold uppercase tracking-[0.14em] text-[#79002F] whitespace-nowrap">
+                Little Threads, Big Happiness
+              </span>
+              <span className="text-[#C77D91] font-handwriting text-[10px]">♡</span>
             </div>
 
-            <div>
-              <Link
-                to="/shop"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#79002F] text-white text-[11px] font-semibold shadow-md active:scale-95 transition-all hover:bg-[#5C0024]"
-              >
-                <span>Shop Now</span>
-                <ArrowRight className="w-3 h-3 stroke-[2.5]" />
-              </Link>
+            {/* Brand Logo */}
+            <div className="w-[85px] xs:w-[100px] my-0.5 pointer-events-none select-none">
+              <img
+                src={asset('/branding/crochie-tales-logo-transparent.webp')}
+                alt="Crochei Tales"
+                className="w-full h-auto object-contain drop-shadow-2xs"
+                loading="eager"
+                decoding="async"
+              />
+            </div>
 
-              {/* Carousel dots indicator */}
-              <div className="flex items-center gap-1.5 mt-2.5">
-                <span className="w-3.5 h-1.5 rounded-full bg-[#79002F]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E5A3B3]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E5A3B3]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E5A3B3]" />
-              </div>
+            {/* Main Catchphrase */}
+            <h1 className="font-serif font-bold text-[10.5px] xs:text-[12px] text-[#5C0024] leading-[1.14] tracking-tight">
+              Handmade for Brighter Days 🌸
+            </h1>
+
+            {/* Real Clickable Shop Now Button */}
+            <Link
+              to="/shop"
+              className="mt-1.5 xs:mt-2 inline-flex items-center gap-1.5 px-3 xs:px-3.5 py-1 xs:py-1.5 rounded-full bg-[#79002F] text-white text-[10px] xs:text-[11px] font-semibold shadow-md active:scale-95 transition-all hover:bg-[#5C0024]"
+            >
+              <span>Shop Now</span>
+              <ArrowRight className="w-3 h-3 stroke-[2.5]" />
+            </Link>
+
+            {/* Carousel dots indicator */}
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span className="w-3.5 h-1.5 rounded-full bg-[#79002F]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E5A3B3]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E5A3B3]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#E5A3B3]" />
             </div>
           </div>
         </section>
