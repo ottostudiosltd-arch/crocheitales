@@ -6,6 +6,7 @@ import { useCartStore } from '../stores/cartStore';
 import { useCustomerStore } from '../stores/customerStore';
 import { placeOrder } from '../services/orderService';
 import { createShiprocketShipment } from '../services/shiprocketService';
+import { sendTelegramOrderAlert } from '../services/telegramService';
 
 export const CheckoutPage: React.FC = () => {
   const { items, getSubtotal, clearCart } = useCartStore();
@@ -112,6 +113,22 @@ export const CheckoutPage: React.FC = () => {
 
       // Save order number to customer's order history
       addOrderNumber(result.orderNumber);
+
+      // 3. Send Instant Telegram Alert to Store Owner
+      sendTelegramOrderAlert({
+        orderNumber: result.orderNumber,
+        customerName: fullName,
+        phone,
+        city,
+        state,
+        postalCode,
+        total,
+        items: items.map((i) => ({
+          title: i.title,
+          quantity: i.quantity,
+          price: i.price,
+        })),
+      }).catch((err) => console.log('Telegram alert notification:', err));
 
       setConfirmedOrder({
         orderNumber: result.orderNumber,
