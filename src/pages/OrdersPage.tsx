@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, ExternalLink, PackageOpen, Clock, Search } from 'lucide-react';
+import { Truck, ExternalLink, PackageOpen, Clock, Search, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -54,7 +54,7 @@ export const OrdersPage: React.FC = () => {
             Track & View Orders
           </h1>
           <p className="text-xs text-brand-text-muted mt-1">
-            Real-time fulfillment tracking via Shiprocket Express
+            Real-time order status and fulfillment tracking
           </p>
         </div>
         <Link to="/shop">
@@ -71,7 +71,7 @@ export const OrdersPage: React.FC = () => {
           </h2>
         </div>
         <p className="text-xs text-[#79002F]/75">
-          Have an order ID from your confirmation? Enter it below to check current courier status and live Shiprocket tracking.
+          Have an order ID from your confirmation? Enter it below to check current confirmation, packing, and courier tracking status.
         </p>
 
         <form onSubmit={handleLookupSubmit} className="flex flex-col sm:flex-row gap-2.5 pt-1">
@@ -134,7 +134,28 @@ export const OrdersPage: React.FC = () => {
                 })
               : 'Recently placed';
 
-            const awbCode = `SR${order.order_number?.replace(/[^0-9]/g, '') || '992019'}IN`;
+            const shipment = Array.isArray(order.shipping_shipments)
+              ? order.shipping_shipments[0]
+              : order.shipping_shipments || order.shipping;
+
+            const formatStatus = (s: string) => {
+              switch (s) {
+                case 'pending_confirmation':
+                  return 'Pending Confirmation';
+                case 'confirmed':
+                  return 'Confirmed';
+                case 'processing':
+                  return 'Processing';
+                case 'shipped':
+                  return 'Shipped';
+                case 'delivered':
+                  return 'Delivered';
+                case 'cancelled':
+                  return 'Cancelled';
+                default:
+                  return s || 'Pending';
+              }
+            };
 
             return (
               <div
@@ -156,7 +177,7 @@ export const OrdersPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="bestseller" className="capitalize">
-                      {order.status || 'Pending'}
+                      {formatStatus(order.status)}
                     </Badge>
                     <span className="text-base font-bold text-brand-burgundy font-sans">
                       ₹{minorToMajor(order.total_amount_minor).toLocaleString('en-IN')}
@@ -179,19 +200,46 @@ export const OrdersPage: React.FC = () => {
                 </div>
 
                 <div className="pt-4 border-t border-[#F2DCD1] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-brand-text-muted">
-                  <div className="flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-brand-burgundy shrink-0" />
-                    <span>AWB Tracking: <strong>{awbCode}</strong> (Shiprocket Express)</span>
-                  </div>
-                  <a
-                    href={`https://shiprocket.co/tracking/${awbCode}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-brand-burgundy font-semibold hover:underline"
-                  >
-                    <span>Track on Shiprocket</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                  {shipment?.awb_code ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-brand-burgundy shrink-0" />
+                        <span>
+                          AWB: <strong className="font-mono">{shipment.awb_code}</strong> ({shipment.courier_name || 'Courier Partner'})
+                        </span>
+                      </div>
+                      {shipment.shipping_label_url ? (
+                        <a
+                          href={shipment.shipping_label_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-brand-burgundy font-semibold hover:underline"
+                        >
+                          <span>Shipping Label</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          {shipment.tracking_status || 'Manifest Generated'}
+                        </span>
+                      )}
+                    </>
+                  ) : order.status === 'pending_confirmation' ? (
+                    <div className="flex items-center gap-2 text-amber-800 bg-amber-50/80 px-3 py-1.5 rounded-xl border border-amber-200/60 w-full sm:w-auto">
+                      <Clock className="w-3.5 h-3.5 shrink-0" />
+                      <span>Awaiting 1-click customer WhatsApp confirmation before dispatch</span>
+                    </div>
+                  ) : order.status === 'confirmed' ? (
+                    <div className="flex items-center gap-2 text-emerald-800 bg-emerald-50/80 px-3 py-1.5 rounded-xl border border-emerald-200/60 w-full sm:w-auto">
+                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                      <span>Order confirmed! Preparing handcrafted pieces for dispatch</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-brand-burgundy/80">
+                      <Truck className="w-4 h-4 text-brand-burgundy shrink-0" />
+                      <span>Fulfillment: Handcrafted packaging in progress</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );

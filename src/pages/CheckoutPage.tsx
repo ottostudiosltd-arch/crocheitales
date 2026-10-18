@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Truck, ArrowLeft, CheckCircle2, AlertCircle, ExternalLink, Sparkles } from 'lucide-react';
+import { ShieldCheck, Truck, ArrowLeft, CheckCircle2, AlertCircle, Sparkles, MessageCircle, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { useCartStore } from '../stores/cartStore';
 import { useCustomerStore } from '../stores/customerStore';
 import { placeOrder } from '../services/orderService';
-import { createShiprocketShipment } from '../services/shiprocketService';
-import { sendTelegramOrderAlert } from '../services/telegramService';
+import { minorToMajor } from '../lib/supabase';
 import {
   sanitizeInput,
   isValidIndianPhone,
@@ -19,7 +18,6 @@ export const CheckoutPage: React.FC = () => {
   const { items, getSubtotal, clearCart } = useCartStore();
   const { profile, setProfile, addOrderNumber } = useCustomerStore();
 
-  const paymentMethod = 'cod';
   const [saveDetails, setSaveDetails] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -28,9 +26,10 @@ export const CheckoutPage: React.FC = () => {
   // Success Confirmation State
   const [confirmedOrder, setConfirmedOrder] = useState<{
     orderNumber: string;
-    awbCode: string;
-    trackingUrl: string;
-    courierName: string;
+    total: number;
+    phone: string;
+    city: string;
+    status: string;
   } | null>(null);
 
   // Form State initialized from customerStore
@@ -114,13 +113,9 @@ export const CheckoutPage: React.FC = () => {
       });
     }
 
-    // 1. Place order into Supabase PostgreSQL
+    // 1. Place order into Supabase PostgreSQL (recalculated server-side)
     const result = await placeOrder({
       items,
-      subtotal,
-      shippingFee,
-      total,
-      paymentMethod,
       shippingAddress: {
         fullName: cleanFullName,
         phone: cleanPhone,
@@ -134,50 +129,17 @@ export const CheckoutPage: React.FC = () => {
 
     if (result.success && result.orderNumber && result.orderId) {
       recordCheckoutAttempt();
-      // 2. Generate Shiprocket Shipment & Tracking Code (Phase 8)
-      const shipment = await createShiprocketShipment({
-        orderId: result.orderId,
-        orderNumber: result.orderNumber,
-        customerName: fullName,
-        phone,
-        email,
-        addressLine1,
-        city,
-        state,
-        postalCode,
-        paymentMethod,
-        subtotal,
-        items: items.map((i) => ({
-          title: i.title,
-          quantity: i.quantity,
-          price: i.price,
-        })),
-      });
-
       // Save order number to customer's order history
       addOrderNumber(result.orderNumber);
 
-      // 3. Send Instant Telegram Alert to Store Owner
-      sendTelegramOrderAlert({
-        orderNumber: result.orderNumber,
-        customerName: fullName,
-        phone,
-        city,
-        state,
-        postalCode,
-        total,
-        items: items.map((i) => ({
-          title: i.title,
-          quantity: i.quantity,
-          price: i.price,
-        })),
-      }).catch((err) => console.log('Telegram alert notification:', err));
+      const resolvedTotal = result.totalMinor !== undefined ? minorToMajor(result.totalMinor) : total;
 
       setConfirmedOrder({
         orderNumber: result.orderNumber,
-        awbCode: shipment.awbCode,
-        trackingUrl: shipment.trackingUrl,
-        courierName: shipment.courierName,
+        total: resolvedTotal,
+        phone: cleanPhone,
+        city: cleanCity,
+        status: result.status || 'pending_confirmation',
       });
 
       clearCart();
@@ -188,7 +150,7 @@ export const CheckoutPage: React.FC = () => {
     setIsSubmitting(false);
   };
 
-  // Order Success Screen
+  // Order Success Screen (Phase 2: Pending Confirmation)
   if (confirmedOrder) {
     return (
       <div className="max-w-xl mx-auto px-4 py-12 sm:py-16 text-center space-y-6">
@@ -197,54 +159,59 @@ export const CheckoutPage: React.FC = () => {
         </div>
 
         <div className="space-y-1">
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
-            Order Confirmed & Queued for Crafting ♡
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 inline-flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Order Placed — Awaiting Confirmation ♡</span>
           </span>
           <h1 className="text-2xl sm:text-3xl font-serif text-brand-burgundy font-bold pt-2">
             Thank You for Shopping Handmade!
           </h1>
           <p className="text-xs sm:text-sm text-brand-text-muted max-w-md mx-auto">
-            Order <strong>#{confirmedOrder.orderNumber}</strong> has been saved directly to our artisan system.
+            Order <strong>#{confirmedOrder.orderNumber}</strong> has been received by our boutique team.
           </p>
         </div>
 
-        {/* Shiprocket Tracking Card */}
-        <div className="bg-white rounded-3xl border border-[#F2DCD1] p-5 sm:p-6 shadow-soft text-left space-y-3">
-          <div className="flex items-center justify-between border-b border-[#F2DCD1] pb-3">
-            <div className="flex items-center gap-2">
-              <Truck className="w-5 h-5 text-brand-burgundy" />
-              <span className="font-serif font-bold text-sm text-[#5C0024]">
-                Shiprocket Courier Details
-              </span>
+        {/* WhatsApp Confirmation Notice Card */}
+        <div className="bg-white rounded-3xl border border-[#F2DCD1] p-5 sm:p-6 shadow-soft text-left space-y-3.5">
+          <div className="flex items-center gap-2.5 border-b border-[#F2DCD1] pb-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shrink-0">
+              <MessageCircle className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
-              Live Assigned
-            </span>
+            <div>
+              <h3 className="font-serif font-bold text-sm text-[#5C0024]">
+                Next Step: 1-Click WhatsApp Confirmation
+              </h3>
+              <p className="text-[11px] text-[#79002F]/70">
+                Cash on Delivery order verification
+              </p>
+            </div>
           </div>
 
-          <div className="text-xs space-y-1 text-[#79002F]/85">
-            <p><strong>AWB Code:</strong> <span className="font-mono text-sm font-bold text-[#5C0024]">{confirmedOrder.awbCode}</span></p>
-            <p><strong>Courier:</strong> {confirmedOrder.courierName}</p>
-            <p className="text-[11px] text-[#79002F]/70">You can track your package dispatch and live transit at any time.</p>
+          <div className="text-xs space-y-2 text-[#79002F]/85 leading-relaxed">
+            <p>
+              To protect handmade orders and ensure smooth doorstep delivery, our store team will reach out to your WhatsApp at <strong>+91 {confirmedOrder.phone}</strong> shortly.
+            </p>
+            <div className="p-3 rounded-xl bg-[#FFF8F3] border border-[#FAD3DC] text-[11px] text-[#79002F] space-y-1">
+              <p className="font-semibold flex items-center gap-1">
+                <span>🌸</span>
+                <span>How it works:</span>
+              </p>
+              <p>
+                Please reply <strong>"CONFIRM"</strong> to our WhatsApp message so our artisans can lovingly pack and dispatch your parcel!
+              </p>
+            </div>
           </div>
 
-          <div className="pt-2">
-            <a
-              href={confirmedOrder.trackingUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full py-2.5 rounded-full bg-[#79002F] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs hover:bg-[#5C0024] transition-all"
-            >
-              <span>Track on Shiprocket</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+          <div className="pt-2 border-t border-[#F2DCD1] flex items-center justify-between text-xs text-[#5C0024]">
+            <span className="font-medium">Amount Due on Delivery (COD):</span>
+            <span className="font-bold text-base text-[#79002F]">₹{confirmedOrder.total.toLocaleString('en-IN')}</span>
           </div>
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link to="/orders" className="w-full sm:w-auto">
             <Button variant="outline" className="w-full">
-              View My Order History
+              View Order Tracking
             </Button>
           </Link>
           <Link to="/shop" className="w-full sm:w-auto">
