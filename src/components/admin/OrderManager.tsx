@@ -15,11 +15,19 @@ import {
   X,
   Check,
   Ban,
+  Send,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { minorToMajor } from '../../lib/supabase';
-import { updateOrderStatus, cancelOrder, placeOrder } from '../../services/orderService';
+import {
+  updateOrderStatus,
+  cancelOrder,
+  placeOrder,
+  retryTelegramNotification,
+} from '../../services/orderService';
 import { useAuthStore } from '../../stores/authStore';
 
 interface OrderManagerProps {
@@ -143,6 +151,29 @@ export const OrderManager: React.FC<OrderManagerProps> = ({ orders, onOrderUpdat
         onOrderUpdated();
       } else {
         alert('Failed to cancel order: ' + res.error);
+      }
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Telegram Notification Retry Handler
+  const handleRetryTelegram = async (ord: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (ord.isDemo) {
+      alert('Sample order simulated: Telegram notification sent.');
+      return;
+    }
+
+    setActionLoadingId(`tg-${ord.id}`);
+    try {
+      const res = await retryTelegramNotification(ord.id);
+      if (res.success) {
+        alert('🎉 Telegram order alert dispatched successfully!');
+        onOrderUpdated();
+      } else {
+        alert('⚠️ Telegram notification result: ' + (res.error || 'Please check Supabase Edge Function secrets.'));
+        onOrderUpdated();
       }
     } finally {
       setActionLoadingId(null);
@@ -456,6 +487,15 @@ Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your 
                           </span>
                         )}
                         {getStatusBadge(ord.status)}
+                        {ord.notification_status === 'failed' && (
+                          <span
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 flex items-center gap-1"
+                            title={ord.notification_error || 'Telegram delivery failed'}
+                          >
+                            <AlertCircle className="w-3 h-3 text-red-600" />
+                            Telegram Failed
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-brand-text-primary font-medium mt-0.5">
                         {addr?.fullName || 'Guest Customer'} &bull;{' '}
@@ -604,6 +644,57 @@ Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your 
                                 : 'Awaiting confirmation'}
                             </span>
                           </div>
+
+                          <div className="flex items-center justify-between">
+                            <span>Telegram Alert:</span>
+                            <div>
+                              {ord.notification_status === 'sent' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  Sent to Admin
+                                </span>
+                              ) : ord.notification_status === 'failed' ? (
+                                <div className="inline-flex items-center gap-1.5 flex-wrap justify-end">
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-700 border border-red-200 cursor-help"
+                                    title={ord.notification_error || 'Telegram delivery failed'}
+                                  >
+                                    <AlertCircle className="w-3 h-3 text-red-600" />
+                                    Failed ({ord.notification_retries || 1})
+                                  </span>
+                                  <button
+                                    onClick={(e) => handleRetryTelegram(ord, e)}
+                                    disabled={actionLoadingId === `tg-${ord.id}`}
+                                    className="text-[10px] font-semibold text-brand-burgundy hover:underline flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-cream/80 hover:bg-brand-cream border border-brand-border/60"
+                                  >
+                                    <RefreshCw className={`w-2.5 h-2.5 ${actionLoadingId === `tg-${ord.id}` ? 'animate-spin' : ''}`} />
+                                    {actionLoadingId === `tg-${ord.id}` ? 'Retrying...' : 'Retry Alert'}
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="inline-flex items-center gap-1.5 flex-wrap justify-end">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <Clock className="w-3 h-3 text-amber-600" />
+                                    Pending
+                                  </span>
+                                  <button
+                                    onClick={(e) => handleRetryTelegram(ord, e)}
+                                    disabled={actionLoadingId === `tg-${ord.id}`}
+                                    className="text-[10px] font-semibold text-brand-burgundy hover:underline flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-cream/80 hover:bg-brand-cream border border-brand-border/60"
+                                  >
+                                    <Send className={`w-2.5 h-2.5 ${actionLoadingId === `tg-${ord.id}` ? 'animate-spin' : ''}`} />
+                                    {actionLoadingId === `tg-${ord.id}` ? 'Sending...' : 'Send Alert'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {ord.notification_error && ord.notification_status === 'failed' && (
+                            <div className="text-[10px] text-red-600 bg-red-50/70 p-2 rounded-lg border border-red-200">
+                              <span className="font-semibold">Delivery Error:</span> {ord.notification_error}
+                            </div>
+                          )}
 
                           {ord.cancelled_at && (
                             <div className="flex flex-col gap-0.5 text-red-700 bg-red-50 p-2 rounded-lg border border-red-200">
