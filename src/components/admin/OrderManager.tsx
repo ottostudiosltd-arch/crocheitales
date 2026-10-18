@@ -706,6 +706,15 @@ Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your 
 
                         {/* Order Actions */}
                         <div className="pt-2 border-t border-brand-border/50 flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={(e) => sendWhatsAppConfirmation(ord, e)}
+                            className="px-3 py-1.5 rounded-lg bg-[#25D366] hover:bg-[#1EBE5D] text-white font-semibold text-xs flex items-center gap-1 shadow-xs"
+                            title="Open WhatsApp chat with pre-filled order receipt"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                            <span>WhatsApp Confirmation</span>
+                          </button>
+
                           {isPending && (
                             <button
                               onClick={(e) => handleConfirmOrder(ord, e)}
