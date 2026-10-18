@@ -68,13 +68,6 @@ export async function placeOrder(params: PlaceOrderParams): Promise<PlaceOrderRe
 
       if (!rpcError && rpcData) {
         if (rpcData.success) {
-          // Trigger server-side Telegram notification asynchronously if not duplicate
-          if (!rpcData.is_idempotent_duplicate && rpcData.order_id) {
-            triggerTelegramOrderAlert(rpcData.order_id).catch((tgErr) => {
-              console.warn('[placeOrder] Telegram notification trigger warning:', tgErr);
-            });
-          }
-
           return {
             success: true,
             orderNumber: rpcData.order_number,
@@ -220,13 +213,6 @@ export async function placeOrder(params: PlaceOrderParams): Promise<PlaceOrderRe
       });
     } catch (historyErr) {
       console.warn('Order status history warning:', historyErr);
-    }
-
-    // Trigger server-side Telegram notification asynchronously
-    if (orderData.id) {
-      triggerTelegramOrderAlert(orderData.id).catch((tgErr) => {
-        console.warn('[placeOrder] Telegram notification trigger warning:', tgErr);
-      });
     }
 
     return {
@@ -532,46 +518,5 @@ export async function updatePaymentStatus(orderId: string, paymentStatus: string
   } catch (err: any) {
     return { success: false, error: err?.message || 'Failed to update payment status' };
   }
-}
-
-/**
- * Triggers server-side Telegram order notification via Supabase Edge Function.
- * Operates with zero exposed secrets; all credentials reside in Supabase environment secrets.
- */
-export async function triggerTelegramOrderAlert(
-  orderId: string,
-  forceRetry = false
-): Promise<{ success: boolean; error?: string; message?: string }> {
-  try {
-    const { data, error } = await supabase.functions.invoke('telegram-order-alert', {
-      body: { orderId, forceRetry },
-    });
-
-    if (error) {
-      console.warn('[triggerTelegramOrderAlert] Edge function error:', error);
-      return { success: false, error: error.message };
-    }
-
-    return {
-      success: data?.success ?? false,
-      error: data?.error,
-      message: data?.message,
-    };
-  } catch (err: any) {
-    console.warn('[triggerTelegramOrderAlert] Network/invocation exception:', err);
-    return {
-      success: false,
-      error: err?.message || 'Failed to invoke telegram-order-alert Edge Function',
-    };
-  }
-}
-
-/**
- * Retry sending Telegram notification for an order (e.g. from Admin Portal).
- */
-export async function retryTelegramNotification(
-  orderId: string
-): Promise<{ success: boolean; error?: string; message?: string }> {
-  return triggerTelegramOrderAlert(orderId, true);
 }
 

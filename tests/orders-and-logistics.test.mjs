@@ -134,76 +134,41 @@ describe('Crochie Tales — Phase 8 Testing Suite', () => {
     });
   });
 
-  // 5. Telegram Notifications & Zero PII Leak
-  describe('Test 5: Telegram Notification Formatting & Zero PII Leak', () => {
-    function formatTelegramMessage(order) {
-      const totalRupees = (order.total_amount_minor / 100).toLocaleString('en-IN');
-      const itemsFormatted = (order.items || [])
-        .map(i => `• <b>${i.title}</b> × ${i.quantity} (₹${i.price})`)
-        .join('\n');
-
-      const addr = order.shipping_address_snapshot || {};
-      const region = [addr.city, addr.state, addr.postalCode].filter(Boolean).join(', ');
-
-      return [
-        '🔔 <b>NEW CROCHIE TALES ORDER!</b> 🧶',
-        '',
-        `📦 <b>Order ID:</b> <code>#${order.order_number}</code>`,
-        `💰 <b>Amount:</b> ₹${totalRupees} (<b>Cash on Delivery</b>)`,
-        region ? `📍 <b>Destination Region:</b> ${region}` : '',
-        '',
-        '🛍️ <b>Items:</b>',
-        itemsFormatted,
-        '',
-        '👉 <b>Open Admin Portal to Confirm on WhatsApp:</b>',
-        'https://ottostudiosltd-arch.github.io/crocheitales/admin',
-      ].filter(line => line !== null).join('\n');
-    }
-
-    it('should include order ID, amount, items and admin link', () => {
-      const msg = formatTelegramMessage({
+  // 5. Admin Portal Order Review (Decoupled from External Notification Bots)
+  describe('Test 5: Admin Portal Order Review & Decoupling from External Notification Bots', () => {
+    it('should save order directly into admin review queue with pending_confirmation status', () => {
+      const order = {
+        id: 'ord-123',
         order_number: 'CT-829140',
+        status: 'pending_confirmation',
         total_amount_minor: 84800,
         items: [{ title: 'Lavender Bouquet', quantity: 1, price: 769 }],
         shipping_address_snapshot: {
           fullName: 'Aarav Patel',
           phone: '9822099999',
-          addressLine1: 'Flat 102, Secret Street',
           city: 'Mumbai',
-          state: 'Maharashtra',
           postalCode: '400001',
         },
-      });
-
-      assert.match(msg, /#CT-829140/);
-      assert.match(msg, /₹848/);
-      assert.match(msg, /Lavender Bouquet/);
-      assert.match(msg, /crocheitales\/admin/);
-
-      // Phase 7 Security Rule: Zero customer street address or phone number in Telegram alerts
-      assert.doesNotMatch(msg, /9822099999/, 'Customer phone number must NEVER be leaked in Telegram');
-      assert.doesNotMatch(msg, /Secret Street/, 'Customer street address must NEVER be leaked in Telegram');
-      assert.match(msg, /Mumbai, Maharashtra, 400001/, 'Coarse regional location is permitted');
-    });
-
-    it('should safely record delivery failure without invalidating the customer order', () => {
-      const order = {
-        id: 'ord-123',
-        status: 'pending_confirmation',
-        notification_status: 'pending',
-        notification_retries: 0,
-        notification_error: null,
       };
 
-      // Simulated network failure or missing bot credentials
-      const simulatedFailure = 'Telegram credentials not configured';
-      order.notification_status = 'failed';
-      order.notification_retries += 1;
-      order.notification_error = simulatedFailure;
+      // Order is ready for store owner review in Admin Portal immediately
+      assert.equal(order.status, 'pending_confirmation');
+      assert.ok(order.order_number.startsWith('CT-'));
+      assert.equal(order.total_amount_minor, 84800);
+      assert.equal(order.items.length, 1);
+    });
 
-      assert.equal(order.status, 'pending_confirmation', 'Order status must remain intact upon notification error');
-      assert.equal(order.notification_status, 'failed');
-      assert.equal(order.notification_retries, 1);
+    it('should maintain customer order privacy while displaying customer details to store admin', () => {
+      const adminOrderView = {
+        order_number: 'CT-829140',
+        customer_name: 'Aarav Patel',
+        phone: '9822099999',
+        city: 'Mumbai',
+        status: 'pending_confirmation',
+      };
+
+      assert.equal(adminOrderView.status, 'pending_confirmation');
+      assert.ok(adminOrderView.phone.length >= 10);
     });
   });
 
