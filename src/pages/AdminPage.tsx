@@ -11,10 +11,11 @@ import {
   LogOut,
   ExternalLink,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { minorToMajor } from '../lib/supabase';
 import { fetchProducts } from '../services/productService';
-import { fetchUserOrders } from '../services/orderService';
+import { fetchAllAdminOrders } from '../services/orderService';
 import { useAuthStore } from '../stores/authStore';
 import { ImageOptimizerUpload } from '../components/admin/ImageOptimizerUpload';
 import { ProductManager } from '../components/admin/ProductManager';
@@ -45,7 +46,7 @@ export const AdminPage: React.FC = () => {
     try {
       const [prods, ords] = await Promise.all([
         fetchProducts(),
-        fetchUserOrders(),
+        fetchAllAdminOrders(),
       ]);
       setProductsCount(prods.length || 8);
       setOrders(ords);
@@ -167,6 +168,40 @@ export const AdminPage: React.FC = () => {
           <p className="text-[10px] text-[#79002F]/60">
             Protected by Supabase PostgreSQL Row Level Security (RLS)
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // If authenticated as a customer but NOT an administrator, block access
+  if (user && !isAdmin) {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md bg-white rounded-3xl border border-red-200 p-6 sm:p-8 shadow-xl space-y-6 text-center">
+          <div className="w-14 h-14 rounded-full bg-red-50 text-red-700 flex items-center justify-center mx-auto border border-red-200">
+            <Lock className="w-6 h-6 stroke-[2]" />
+          </div>
+          <div className="space-y-2">
+            <span className="text-[11px] font-semibold uppercase px-2.5 py-0.5 rounded-full bg-red-100 text-red-800">
+              Access Restricted
+            </span>
+            <h1 className="text-2xl font-serif font-bold text-[#5C0024]">
+              Admin Privileges Required
+            </h1>
+            <p className="text-xs text-[#79002F]/75 max-w-xs mx-auto">
+              Your account ({user.email}) does not possess verified boutique administrator privileges.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col gap-2.5">
+            <Button variant="primary" onClick={() => signOut()} className="w-full">
+              Sign In with Authorized Admin Account
+            </Button>
+            <Link to="/" className="w-full">
+              <Button variant="outline" className="w-full">
+                Return to Storefront
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     );

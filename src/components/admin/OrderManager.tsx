@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Package,
   Search,
@@ -11,23 +11,16 @@ import {
   MessageCircle,
   Sparkles,
   Plus,
-  Send,
   Truck,
-  ExternalLink,
   X,
-  AlertCircle,
   Check,
+  Ban,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { minorToMajor } from '../../lib/supabase';
-import { updateOrderStatus, updatePaymentStatus, placeOrder } from '../../services/orderService';
-import { createShiprocketShipment } from '../../services/shiprocketService';
-import {
-  getTelegramConfig,
-  saveTelegramConfig,
-  testTelegramConnection,
-} from '../../services/telegramService';
+import { updateOrderStatus, cancelOrder, placeOrder } from '../../services/orderService';
+import { useAuthStore } from '../../stores/authStore';
 
 interface OrderManagerProps {
   orders: any[];
@@ -37,7 +30,7 @@ interface OrderManagerProps {
 const DEFAULT_DEMO_ORDER = {
   id: 'demo-order-849201',
   order_number: 'CT-849201',
-  status: 'pending',
+  status: 'pending_confirmation',
   payment_status: 'pending',
   payment_method: 'cod',
   total_amount_minor: 84800,
@@ -54,6 +47,9 @@ const DEFAULT_DEMO_ORDER = {
   },
   customer_notes: 'Please pack in a lovely gift box with ribbon if possible! ♡',
   created_at: new Date().toISOString(),
+  confirmed_at: null,
+  cancelled_at: null,
+  cancelled_reason: null,
   order_items: [
     {
       id: 'demo-item-1',
@@ -71,79 +67,96 @@ const DEFAULT_DEMO_ORDER = {
     },
   ],
   isDemo: true,
-  awb_code: undefined as string | undefined,
+  shipping_shipments: null,
 };
 
 export const OrderManager: React.FC<OrderManagerProps> = ({ orders, onOrderUpdated }) => {
+  const { user } = useAuthStore();
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>('demo-order-849201');
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [isCreatingDemo, setIsCreatingDemo] = useState(false);
-  const [generatingAwbId, setGeneratingAwbId] = useState<string | null>(null);
 
-  // Local map to track generated AWBs for immediate UI responsiveness
-  const [orderAwbs, setOrderAwbs] = useState<Record<string, { awb: string; courier: string; url: string }>>({});
+  // Cancellation modal state
+  const [cancellingOrder, setCancellingOrder] = useState<any | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('Customer declined via WhatsApp');
 
-  // Telegram Config Modal State
-  const [isTelegramModalOpen, setIsTelegramModalOpen] = useState(false);
-  const [botToken, setBotToken] = useState('');
-  const [chatId, setChatId] = useState('');
-  const [isTelegramConfigured, setIsTelegramConfigured] = useState(false);
-  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
-  const [telegramStatusMsg, setTelegramStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  useEffect(() => {
-    const config = getTelegramConfig();
-    setBotToken(config.botToken);
-    setChatId(config.chatId);
-    setIsTelegramConfigured(config.isConfigured);
-  }, []);
+  // Shipment feedback state
+  const [shipmentNotice, setShipmentNotice] = useState<{ id: string; text: string } | null>(null);
 
   // If no database orders exist yet, display the demo order for immediate testing
   const displayOrders = orders && orders.length > 0 ? orders : [DEFAULT_DEMO_ORDER];
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    if (orderId === 'demo-order-849201') {
-      alert(`Demo Order status updated to "${newStatus}"! (In real orders, this updates Supabase live).`);
+  // Calculate counts for quick badges
+  const pendingCount = displayOrders.filter(
+    (o) => o.status === 'pending_confirmation' || o.status === 'pending'
+  ).length;
+
+  // 1. Manual Confirmation Action
+  const handleConfirmOrder = async (ord: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (ord.isDemo) {
+      ord.status = 'confirmed';
+      ord.confirmed_at = new Date().toISOString();
+      alert(`Demo Order #${ord.order_number} marked as Confirmed! Ready for iThink shipment creation.`);
       return;
     }
-    setUpdatingId(orderId);
+
+    setActionLoadingId(ord.id);
     try {
-      const res = await updateOrderStatus(orderId, newStatus);
+      const res = await updateOrderStatus(
+        ord.id,
+        'confirmed',
+        'Customer confirmed order details via WhatsApp.',
+        user?.id
+      );
       if (res.success) {
         onOrderUpdated();
+      } else {
+        alert('Failed to confirm order: ' + res.error);
       }
     } finally {
-      setUpdatingId(null);
+      setActionLoadingId(null);
     }
   };
 
-  const handleTogglePayment = async (orderId: string, currentStatus: string) => {
-    if (orderId === 'demo-order-849201') {
-      alert(`Demo Order payment updated to "${currentStatus === 'paid' ? 'pending' : 'paid'}"!`);
+  // 2. Cancellation Action
+  const handleConfirmCancellation = async () => {
+    if (!cancellingOrder) return;
+    const ord = cancellingOrder;
+
+    if (ord.isDemo) {
+      ord.status = 'cancelled';
+      ord.cancelled_at = new Date().toISOString();
+      ord.cancelled_reason = cancelReason;
+      setCancellingOrder(null);
+      alert(`Demo Order #${ord.order_number} marked as Cancelled.`);
       return;
     }
-    setUpdatingId(orderId);
+
+    setActionLoadingId(ord.id);
     try {
-      const newStatus = currentStatus === 'paid' ? 'pending' : 'paid';
-      const res = await updatePaymentStatus(orderId, newStatus);
+      const res = await cancelOrder(ord.id, cancelReason, user?.id);
       if (res.success) {
+        setCancellingOrder(null);
         onOrderUpdated();
+      } else {
+        alert('Failed to cancel order: ' + res.error);
       }
     } finally {
-      setUpdatingId(null);
+      setActionLoadingId(null);
     }
   };
 
-  // WhatsApp 1-Click Confirmation Link Generator
+  // 3. WhatsApp 1-Click Confirmation Link Generator
   const sendWhatsAppConfirmation = (ord: any, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
 
     const addr = ord.shipping_address_snapshot as any;
     const customerName = addr?.fullName || 'there';
     const rawPhone = addr?.phone || '';
-    
+
     // Clean phone number to WhatsApp international format without '+' or '-'
     let cleanPhone = rawPhone.replace(/\D/g, '');
     if (cleanPhone.length === 10) {
@@ -167,7 +180,7 @@ export const OrderManager: React.FC<OrderManagerProps> = ({ orders, onOrderUpdat
       addr?.addressLine2 ? ', ' + addr.addressLine2 : ''
     }, ${addr?.city || ''}, ${addr?.state || ''} - ${addr?.postalCode || ''}`;
 
-    const message = 
+    const message =
 `Hello ${customerName}! 🌸
 Thank you for your order with Crochie Tales! ♡
 
@@ -177,85 +190,29 @@ ${itemsText}
 💰 Total Amount: ₹${total.toLocaleString('en-IN')} (Cash on Delivery)
 📍 Delivery Address: ${deliveryAddress}
 
-Please reply with *CONFIRM* so we can start lovingly packing and preparing your handmade parcel for dispatch! 🧶✨`;
+Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your handmade parcel! 🧶✨`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
   };
 
-  // Shiprocket 1-Click AWB & Courier Generator
-  const handleGenerateAwb = async (ord: any, e?: React.MouseEvent) => {
+  // 4. Shipment Trigger Action (available ONLY after confirmation)
+  const handleInitiateShipment = (ord: any, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setGeneratingAwbId(ord.id);
 
-    try {
-      const addr = ord.shipping_address_snapshot as any;
-      const res = await createShiprocketShipment({
-        orderId: ord.id,
-        orderNumber: ord.order_number,
-        customerName: addr?.fullName || 'Valued Customer',
-        phone: addr?.phone || '9876543210',
-        email: addr?.email,
-        addressLine1: addr?.addressLine1 || '',
-        city: addr?.city || 'Pune',
-        state: addr?.state || 'Maharashtra',
-        postalCode: addr?.postalCode || '411001',
-        paymentMethod: ord.payment_method || 'cod',
-        subtotal: minorToMajor(ord.subtotal_amount_minor || ord.total_amount_minor),
-        items: (ord.order_items || []).map((i: any) => ({
-          title: i.title_snapshot,
-          quantity: i.quantity,
-          price: minorToMajor(i.price_snapshot_minor),
-        })),
-      });
-
-      if (res.success) {
-        setOrderAwbs((prev) => ({
-          ...prev,
-          [ord.id]: {
-            awb: res.awbCode,
-            courier: res.courierName,
-            url: res.trackingUrl,
-          },
-        }));
-      }
-    } finally {
-      setGeneratingAwbId(null);
-    }
-  };
-
-  // Save Telegram settings
-  const handleSaveTelegram = (e: React.FormEvent) => {
-    e.preventDefault();
-    saveTelegramConfig(botToken, chatId);
-    setIsTelegramConfigured(Boolean(botToken && chatId));
-    setTelegramStatusMsg({ type: 'success', text: '✅ Telegram credentials saved successfully!' });
-    setTimeout(() => setTelegramStatusMsg(null), 3000);
-  };
-
-  // Test Telegram ping
-  const handleTestTelegramPing = async () => {
-    if (!botToken || !chatId) {
-      setTelegramStatusMsg({ type: 'error', text: 'Please enter both Bot Token and Chat ID first.' });
+    if (ord.status === 'pending_confirmation' || ord.status === 'pending') {
+      alert('⚠️ Shipping Locked: Please confirm this order with the customer on WhatsApp and click "Mark as Confirmed" before generating an iThink shipment.');
       return;
     }
-    setIsTestingTelegram(true);
-    setTelegramStatusMsg(null);
-    try {
-      const res = await testTelegramConnection(botToken, chatId);
-      if (res.success) {
-        setTelegramStatusMsg({ type: 'success', text: '🎉 Ping sent! Check your Telegram app for the notification sound.' });
-        saveTelegramConfig(botToken, chatId);
-        setIsTelegramConfigured(true);
-      } else {
-        setTelegramStatusMsg({ type: 'error', text: res.error || 'Failed to connect to Telegram bot.' });
-      }
-    } finally {
-      setIsTestingTelegram(false);
-    }
+
+    setShipmentNotice({
+      id: ord.id,
+      text: 'iThink Logistics provider adapter queued for Phase 6 dispatch.',
+    });
+    setTimeout(() => setShipmentNotice(null), 4000);
   };
 
-  // Helper to insert a live test order into Supabase
+  // 5. Insert Live Test Order into Supabase for testing
   const handleCreateTestOrder = async () => {
     setIsCreatingDemo(true);
     try {
@@ -278,10 +235,6 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
             imageUrl: '/images/products/daisy-keychain.webp',
           },
         ],
-        subtotal: 848,
-        shippingFee: 0,
-        total: 848,
-        paymentMethod: 'cod',
         shippingAddress: {
           fullName: 'Ananya Deshmukh',
           phone: '9822012345',
@@ -304,9 +257,67 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending_confirmation':
+      case 'pending':
+        return (
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
+            <Clock className="w-3 h-3 text-amber-700" />
+            <span>Pending Confirmation</span>
+          </span>
+        );
+      case 'confirmed':
+        return (
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 inline-flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+            <span>Confirmed</span>
+          </span>
+        );
+      case 'processing':
+        return (
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-300 inline-flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-blue-700" />
+            <span>Processing</span>
+          </span>
+        );
+      case 'shipped':
+        return (
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-300 inline-flex items-center gap-1">
+            <Truck className="w-3 h-3 text-purple-700" />
+            <span>Shipped</span>
+          </span>
+        );
+      case 'delivered':
+        return (
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-green-100 text-green-900 border border-green-300 inline-flex items-center gap-1">
+            <Check className="w-3 h-3 text-green-700" />
+            <span>Delivered</span>
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-900 border border-red-300 inline-flex items-center gap-1">
+            <Ban className="w-3 h-3 text-red-700" />
+            <span>Cancelled</span>
+          </span>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="capitalize text-[10px]">
+            {status}
+          </Badge>
+        );
+    }
+  };
+
   const filteredOrders = displayOrders.filter((ord) => {
-    const matchesStatus =
-      filterStatus === 'all' || ord.status?.toLowerCase() === filterStatus.toLowerCase();
+    let matchesStatus = true;
+    if (filterStatus === 'pending_confirmation') {
+      matchesStatus = ord.status === 'pending_confirmation' || ord.status === 'pending';
+    } else if (filterStatus !== 'all') {
+      matchesStatus = ord.status?.toLowerCase() === filterStatus.toLowerCase();
+    }
 
     const addr = ord.shipping_address_snapshot as any;
     const customerName = addr?.fullName?.toLowerCase() || '';
@@ -326,35 +337,24 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-brand-border/60">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-              Orders Queue & Fulfillment
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-brand-softPink text-brand-burgundy border border-brand-border">
+              Order Fulfillment Center
             </span>
-            <span className="text-xs text-brand-text-muted">
-              {orders.length} real {orders.length === 1 ? 'order' : 'orders'} in Supabase
-            </span>
+            {pendingCount > 0 && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                {pendingCount} Pending WhatsApp Confirmation
+              </span>
+            )}
           </div>
           <h2 className="font-serif text-xl font-bold text-brand-burgundy mt-1">
-            Customer Orders, WhatsApp & Shiprocket
+            Customer Orders & Order Pipeline
           </h2>
           <p className="text-xs text-brand-text-muted mt-0.5">
-            Confirm orders via WhatsApp, get Telegram instant alerts, and dispatch via Shiprocket.
+            Confirm COD orders on WhatsApp, update statuses, and prepare packages for iThink Logistics.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Telegram Alert Configuration Trigger */}
-          <button
-            onClick={() => setIsTelegramModalOpen(true)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-              isTelegramConfigured
-                ? 'border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100'
-                : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
-            }`}
-          >
-            <Send className="w-3.5 h-3.5 text-sky-600" />
-            <span>Telegram Alert: {isTelegramConfigured ? '🟢 Active' : '⚙️ Connect Bot'}</span>
-          </button>
-
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             size="sm"
             variant="outline"
@@ -364,37 +364,43 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
           >
             {isCreatingDemo ? 'Creating...' : '+ Test Order in DB'}
           </Button>
-
-          {/* Filter chips */}
-          <div className="hidden xl:flex items-center gap-1.5">
-            {['all', 'pending', 'confirmed', 'processing', 'delivered', 'cancelled'].map(
-              (status) => (
-                <button
-                  key={status}
-                  onClick={() => setFilterStatus(status)}
-                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize transition-colors ${
-                    filterStatus === status
-                      ? 'bg-brand-burgundy text-white'
-                      : 'bg-brand-cream/60 text-brand-text-muted hover:bg-brand-cream'
-                  }`}
-                >
-                  {status}
-                </button>
-              )
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Search Input */}
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+        {[
+          { key: 'all', label: 'All Orders' },
+          { key: 'pending_confirmation', label: `Pending Confirmation (${pendingCount})` },
+          { key: 'confirmed', label: 'Confirmed' },
+          { key: 'processing', label: 'Processing' },
+          { key: 'shipped', label: 'Shipped' },
+          { key: 'delivered', label: 'Delivered' },
+          { key: 'cancelled', label: 'Cancelled' },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setFilterStatus(tab.key)}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
+              filterStatus === tab.key
+                ? 'bg-brand-burgundy text-white shadow-xs'
+                : 'bg-brand-cream/60 text-brand-text-muted hover:bg-brand-cream'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search Bar */}
       <div className="relative">
         <Search className="w-3.5 h-3.5 text-brand-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
-          placeholder="Search by order number (CT-849201), customer name, or phone..."
+          placeholder="Search by order number (CT-849201), customer name, or mobile number..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-brand-border bg-brand-cream/30 focus:bg-white focus:outline-none focus:border-brand-burgundy transition-all"
+          className="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-brand-border bg-brand-cream/30 focus:bg-white focus:outline-none focus:border-brand-burgundy transition-all"
         />
       </div>
 
@@ -402,7 +408,7 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
       {filteredOrders.length === 0 ? (
         <div className="py-12 text-center text-xs text-brand-text-muted space-y-2">
           <Package className="w-8 h-8 mx-auto text-brand-text-muted/60 stroke-[1.5]" />
-          <p>No orders found matching your search.</p>
+          <p>No orders found matching your search filter.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -411,13 +417,12 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
             const isExpanded = expandedOrderId === ord.id;
             const items = ord.order_items || [];
             const isDemo = ord.isDemo;
+            const isPending = ord.status === 'pending_confirmation' || ord.status === 'pending';
+            const isCancelled = ord.status === 'cancelled';
 
-            // Check AWB from DB record or local state
-            const awbInfo = orderAwbs[ord.id] || (ord.awb_code ? {
-              awb: ord.awb_code,
-              courier: 'Shiprocket Express',
-              url: `https://shiprocket.co/tracking/${ord.awb_code}`,
-            } : null);
+            const shipment = Array.isArray(ord.shipping_shipments)
+              ? ord.shipping_shipments[0]
+              : ord.shipping_shipments || null;
 
             return (
               <div
@@ -425,10 +430,12 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
                 className={`border rounded-2xl overflow-hidden bg-white transition-all shadow-xs ${
                   isDemo
                     ? 'border-amber-300 ring-2 ring-amber-100'
+                    : isPending
+                    ? 'border-amber-300/80 bg-amber-50/10'
                     : 'border-brand-border/70 hover:border-brand-burgundy/40'
                 }`}
               >
-                {/* Order Summary Row */}
+                {/* Order Summary Header Row */}
                 <div
                   onClick={() => setExpandedOrderId(isExpanded ? null : ord.id)}
                   className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-brand-cream/20 transition-colors"
@@ -448,12 +455,7 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
                             Sample / Dummy Order
                           </span>
                         )}
-                        <Badge
-                          variant={ord.status === 'delivered' ? 'bestseller' : 'outline'}
-                          className="capitalize text-[10px]"
-                        >
-                          {ord.status || 'Pending'}
-                        </Badge>
+                        {getStatusBadge(ord.status)}
                       </div>
                       <p className="text-xs text-brand-text-primary font-medium mt-0.5">
                         {addr?.fullName || 'Guest Customer'} &bull;{' '}
@@ -475,40 +477,54 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
                       </span>
                     </div>
 
-                    {/* Shiprocket AWB pill or button */}
-                    {awbInfo ? (
-                      <a
-                        href={awbInfo.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100 text-xs font-semibold transition-colors"
-                        title="Click to view live Shiprocket tracking"
-                      >
-                        <Truck className="w-3.5 h-3.5 text-blue-600" />
-                        <span>{awbInfo.awb}</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    ) : (
+                    {/* WhatsApp Click-to-Chat Action */}
+                    <button
+                      onClick={(e) => sendWhatsAppConfirmation(ord, e)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#25D366] hover:bg-[#1EBE5D] text-white font-semibold text-xs transition-all shadow-xs active:scale-95 shrink-0"
+                      title="Send pre-filled confirmation receipt to customer on WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                      <span>WhatsApp Confirmation</span>
+                    </button>
+
+                    {/* Manual Confirmation Button (when pending) */}
+                    {isPending && (
                       <button
-                        onClick={(e) => handleGenerateAwb(ord, e)}
-                        disabled={generatingAwbId === ord.id}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-brand-cream border border-brand-border text-brand-burgundy hover:bg-brand-softPink/50 text-xs font-semibold transition-colors shrink-0"
+                        onClick={(e) => handleConfirmOrder(ord, e)}
+                        disabled={actionLoadingId === ord.id}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-all shadow-xs active:scale-95 shrink-0"
+                        title="Mark order as confirmed after customer replies on WhatsApp"
                       >
-                        <Truck className="w-3.5 h-3.5" />
-                        <span>{generatingAwbId === ord.id ? 'Generating...' : 'Shiprocket AWB'}</span>
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Mark as Confirmed</span>
                       </button>
                     )}
 
-                    {/* WhatsApp Confirmation Button */}
-                    <button
-                      onClick={(e) => sendWhatsAppConfirmation(ord, e)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#25D366] hover:bg-[#1EBE5D] text-white font-semibold text-xs transition-all shadow-sm active:scale-95 shrink-0"
-                      title="Open WhatsApp to confirm this order with the customer"
-                    >
-                      <MessageCircle className="w-4 h-4 fill-current" />
-                      <span>Confirm on WhatsApp</span>
-                    </button>
+                    {/* Shipment Trigger Button */}
+                    {shipment?.awb_code ? (
+                      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold shrink-0">
+                        <Truck className="w-3 h-3 text-blue-600" />
+                        <span>AWB: {shipment.awb_code}</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => handleInitiateShipment(ord, e)}
+                        disabled={isPending || isCancelled}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-colors shrink-0 ${
+                          isPending || isCancelled
+                            ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                            : 'bg-brand-burgundy text-white hover:bg-[#5C0024] shadow-xs'
+                        }`}
+                        title={
+                          isPending
+                            ? 'Awaiting customer WhatsApp confirmation before shipment can be created'
+                            : 'Generate shipment via iThink Logistics'
+                        }
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>{isPending ? '🔒 Ship (Awaiting Conf.)' : 'Create iThink Shipment'}</span>
+                      </button>
+                    )}
 
                     <div className="text-brand-text-muted hidden sm:block">
                       {isExpanded ? (
@@ -519,6 +535,12 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
                     </div>
                   </div>
                 </div>
+
+                {shipmentNotice?.id === ord.id && (
+                  <div className="mx-4 mb-3 p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs">
+                    ℹ️ {shipmentNotice?.text}
+                  </div>
+                )}
 
                 {/* Expanded Details View */}
                 {isExpanded && (
@@ -537,88 +559,100 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
                           <p>{addr?.addressLine1}</p>
                           {addr?.addressLine2 && <p>{addr?.addressLine2}</p>}
                           <p>
-                            {addr?.city}, {addr?.state} - {addr?.postalCode}
+                            {addr?.city}, {addr?.state} - <strong>{addr?.postalCode}</strong>
                           </p>
-                          <p className="flex items-center gap-1 pt-1.5 text-brand-burgundy font-semibold">
+                          <p className="flex items-center gap-2 pt-1.5 text-brand-burgundy font-semibold">
                             <Phone className="w-3.5 h-3.5" />
-                            <span>{addr?.phone}</span>
+                            <a href={`tel:${addr?.phone}`} className="hover:underline">
+                              +91 {addr?.phone}
+                            </a>
+                            {addr?.email && (
+                              <span className="text-brand-text-muted font-normal text-[10px]">
+                                ({addr.email})
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>
 
-                      {/* Status Controls & 1-Click WhatsApp Quick Action */}
-                      <div className="bg-white p-3.5 rounded-xl border border-brand-border/60 space-y-3">
+                      {/* Order Timeline & Status Details */}
+                      <div className="bg-white p-3.5 rounded-xl border border-brand-border/60 space-y-2.5">
                         <span className="font-semibold text-brand-burgundy flex items-center gap-1.5 text-[11px]">
                           <Clock className="w-3.5 h-3.5" />
-                          Order Status & Fulfillment
+                          Order Timeline & Actions
                         </span>
 
-                        <div className="space-y-2.5">
-                          <div className="flex items-center gap-2">
-                            <label className="text-[11px] text-brand-text-muted w-24">
-                              Status:
-                            </label>
-                            <select
-                              value={ord.status || 'pending'}
-                              disabled={updatingId === ord.id}
-                              onChange={(e) => handleStatusChange(ord.id, e.target.value)}
-                              className="px-2.5 py-1 text-xs rounded-lg border border-brand-border bg-brand-cream/20 font-semibold focus:outline-none focus:border-brand-burgundy"
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="confirmed">Confirmed (WhatsApp Verified)</option>
-                              <option value="processing">Processing (Knitting/Packing)</option>
-                              <option value="delivered">Delivered</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
+                        <div className="space-y-1.5 text-[11px] text-brand-text-muted">
+                          <div className="flex items-center justify-between">
+                            <span>Placed at:</span>
+                            <span className="font-medium text-brand-text-primary">
+                              {new Date(ord.created_at).toLocaleString('en-IN', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              })}
+                            </span>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <label className="text-[11px] text-brand-text-muted w-24">
-                              Payment:
-                            </label>
+                          <div className="flex items-center justify-between">
+                            <span>WhatsApp Confirmed:</span>
+                            <span className="font-medium text-brand-text-primary">
+                              {ord.confirmed_at
+                                ? new Date(ord.confirmed_at).toLocaleString('en-IN', {
+                                    dateStyle: 'medium',
+                                    timeStyle: 'short',
+                                  })
+                                : 'Awaiting confirmation'}
+                            </span>
+                          </div>
+
+                          {ord.cancelled_at && (
+                            <div className="flex flex-col gap-0.5 text-red-700 bg-red-50 p-2 rounded-lg border border-red-200">
+                              <span className="font-bold">Cancelled:</span>
+                              <span>Reason: {ord.cancelled_reason || 'Customer request'}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Order Actions */}
+                        <div className="pt-2 border-t border-brand-border/50 flex flex-wrap items-center gap-2">
+                          {isPending && (
                             <button
-                              onClick={() => handleTogglePayment(ord.id, ord.payment_status)}
-                              disabled={updatingId === ord.id}
-                              className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border transition-colors ${
-                                ord.payment_status === 'paid'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : 'bg-amber-50 text-amber-800 border-amber-300'
-                              }`}
+                              onClick={(e) => handleConfirmOrder(ord, e)}
+                              disabled={actionLoadingId === ord.id}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1 shadow-xs"
                             >
-                              {ord.payment_status === 'paid' ? 'Marked as Paid ✓' : 'Mark as Paid'}
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Mark Confirmed</span>
                             </button>
-                          </div>
+                          )}
 
-                          {/* Pre-formatted WhatsApp CTA banner */}
-                          <div className="pt-2 border-t border-brand-border/50 flex flex-col sm:flex-row items-center gap-2">
+                          {!isCancelled && ord.status !== 'delivered' && (
                             <button
-                              onClick={(e) => sendWhatsAppConfirmation(ord, e)}
-                              className="w-full sm:flex-1 py-2 px-3 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCancellingOrder(ord);
+                              }}
+                              className="px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 font-semibold text-xs flex items-center gap-1"
                             >
-                              <MessageCircle className="w-4 h-4 fill-current" />
-                              <span>Send WhatsApp Receipt</span>
+                              <Ban className="w-3.5 h-3.5" />
+                              <span>Cancel Order</span>
                             </button>
-
-                            {!awbInfo && (
-                              <button
-                                onClick={(e) => handleGenerateAwb(ord, e)}
-                                disabled={generatingAwbId === ord.id}
-                                className="w-full sm:w-auto py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs shrink-0"
-                              >
-                                <Truck className="w-4 h-4" />
-                                <span>{generatingAwbId === ord.id ? 'Generating...' : 'Shiprocket AWB'}</span>
-                              </button>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {/* Ordered Items List */}
                     <div className="bg-white p-3.5 rounded-xl border border-brand-border/60 space-y-2">
-                      <span className="font-semibold text-brand-burgundy text-[11px] block">
-                        Ordered Items ({items.length})
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-brand-burgundy text-[11px]">
+                          Ordered Items ({items.length})
+                        </span>
+                        <span className="text-[11px] text-brand-text-muted">
+                          Subtotal: ₹{minorToMajor(ord.subtotal_amount_minor || 0)} + Shipping: ₹{minorToMajor(ord.shipping_amount_minor || 0)} = <strong>₹{minorToMajor(ord.total_amount_minor)} (COD)</strong>
+                        </span>
+                      </div>
+
                       <div className="divide-y divide-brand-border/40">
                         {items.map((item: any) => (
                           <div
@@ -631,7 +665,7 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
                                 {item.title_snapshot}
                               </span>
                               <span className="text-brand-text-muted text-[11px]">
-                                × {item.quantity}
+                                × {item.quantity} (₹{minorToMajor(item.price_snapshot_minor)} each)
                               </span>
                             </div>
                             <span className="font-bold text-brand-burgundy">
@@ -655,106 +689,69 @@ Please reply with *CONFIRM* so we can start lovingly packing and preparing your 
         </div>
       )}
 
-      {/* Telegram Setup & Testing Modal */}
-      {isTelegramModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white w-full max-w-lg rounded-3xl border border-brand-border p-6 sm:p-8 shadow-2xl space-y-5 relative">
-            <button
-              onClick={() => setIsTelegramModalOpen(false)}
-              className="absolute top-5 right-5 p-1.5 rounded-full bg-brand-cream text-brand-text-muted hover:text-brand-burgundy transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div>
+      {/* Cancellation Reason Modal */}
+      {cancellingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-[#F2DCD1] p-6 max-w-md w-full space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-brand-border/60 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center">
-                  <Send className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-serif text-xl font-bold text-brand-burgundy">
-                    Telegram Order Alert Setup
-                  </h3>
-                  <span className="text-[10px] text-brand-text-muted">
-                    Instant sound alert on your phone whenever an order is placed
-                  </span>
-                </div>
+                <Ban className="w-5 h-5 text-red-600" />
+                <h3 className="font-serif font-bold text-base text-[#5C0024]">
+                  Cancel Order #{cancellingOrder.order_number}
+                </h3>
               </div>
-            </div>
-
-            {/* Quick 1-minute steps */}
-            <div className="bg-brand-cream/30 p-3.5 rounded-2xl border border-brand-border/60 space-y-1.5 text-xs text-brand-text-muted">
-              <p className="font-bold text-brand-burgundy">How to get your Bot Token & Chat ID (1 Minute):</p>
-              <ol className="list-decimal pl-4 space-y-1 text-[11px]">
-                <li>Open Telegram and search <strong>@BotFather</strong>. Send <code>/newbot</code> to get your <strong>Bot Token</strong>.</li>
-                <li>Search <strong>@userinfobot</strong> on Telegram to see your personal <strong>Chat ID</strong>.</li>
-                <li>Paste both below and click <strong>&ldquo;Test Ping&rdquo;</strong> to verify sound alert on your phone!</li>
-              </ol>
-            </div>
-
-            {telegramStatusMsg && (
-              <div
-                className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                  telegramStatusMsg.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
-                }`}
+              <button
+                onClick={() => setCancellingOrder(null)}
+                className="text-gray-400 hover:text-gray-600"
               >
-                {telegramStatusMsg.type === 'success' ? (
-                  <Check className="w-4 h-4 shrink-0" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                )}
-                <span>{telegramStatusMsg.text}</span>
-              </div>
-            )}
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <form onSubmit={handleSaveTelegram} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold text-brand-burgundy mb-1">
-                  Telegram Bot Token *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-                  value={botToken}
-                  onChange={(e) => setBotToken(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border focus:outline-none focus:border-brand-burgundy font-mono text-[11px]"
-                />
-              </div>
+            <p className="text-xs text-brand-text-muted">
+              Please specify the cancellation reason for the audit trail:
+            </p>
 
-              <div>
-                <label className="block font-semibold text-brand-burgundy mb-1">
-                  Telegram Chat ID *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 987654321"
-                  value={chatId}
-                  onChange={(e) => setChatId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-brand-border focus:outline-none focus:border-brand-burgundy font-mono text-[11px]"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-between gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTestTelegramPing}
-                  disabled={isTestingTelegram}
-                  leftIcon={<Send className="w-3.5 h-3.5" />}
+            <div className="space-y-2">
+              {[
+                'Customer declined via WhatsApp',
+                'Customer unreachable after multiple attempts',
+                'Customer requested cancellation',
+                'Invalid address or pincode',
+                'Duplicate test order',
+              ].map((reason) => (
+                <label
+                  key={reason}
+                  className="flex items-center gap-2.5 p-2 rounded-xl border border-brand-border/60 hover:bg-brand-cream/30 text-xs cursor-pointer"
                 >
-                  {isTestingTelegram ? 'Sending Ping...' : 'Test Sound Ping 🔔'}
-                </Button>
+                  <input
+                    type="radio"
+                    name="cancel_reason"
+                    checked={cancelReason === reason}
+                    onChange={() => setCancelReason(reason)}
+                    className="accent-[#79002F]"
+                  />
+                  <span>{reason}</span>
+                </label>
+              ))}
+            </div>
 
-                <Button type="submit" variant="primary" size="sm">
-                  Save Credentials
-                </Button>
-              </div>
-            </form>
+            <div className="pt-2 flex items-center justify-end gap-2.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCancellingOrder(null)}
+              >
+                Go Back
+              </Button>
+              <button
+                onClick={handleConfirmCancellation}
+                disabled={actionLoadingId === cancellingOrder.id}
+                className="px-4 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition-colors"
+              >
+                {actionLoadingId === cancellingOrder.id ? 'Cancelling...' : 'Confirm Cancellation'}
+              </button>
+            </div>
           </div>
         </div>
       )}
