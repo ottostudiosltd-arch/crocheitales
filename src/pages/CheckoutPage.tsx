@@ -439,7 +439,7 @@ export const CheckoutPage: React.FC = () => {
                 <span className="font-semibold text-brand-text-primary">₹{subtotal.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-brand-text-muted">
-                <span>Shipping via Shiprocket</span>
+                <span>Shipping (iThink Logistics)</span>
                 <span className="font-semibold text-brand-burgundy">
                   {shippingFee === 0 ? 'FREE' : `₹${shippingFee}`}
                 </span>

@@ -250,7 +250,7 @@ export const ProfilePage: React.FC = () => {
                 Track My Orders
               </h3>
               <p className="text-[11px] text-[#79002F]/70">
-                View tracking code & Shiprocket courier status
+                View tracking code & iThink Logistics courier status
               </p>
             </div>
           </div>

@@ -270,7 +270,7 @@ export const AdminPage: React.FC = () => {
           <p className="text-2xl sm:text-3xl font-bold text-brand-burgundy mt-2 font-sans">
             {orders.length}
           </p>
-          <span className="text-[10px] text-brand-text-muted">Shiprocket pipeline</span>
+          <span className="text-[10px] text-brand-text-muted">iThink Logistics pipeline</span>
         </div>
 
         <div className="bg-white p-6 rounded-3xl border border-brand-border/70 shadow-soft">

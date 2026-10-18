@@ -28,6 +28,7 @@ import {
   placeOrder,
   retryTelegramNotification,
 } from '../../services/orderService';
+import { createIThinkShipment } from '../../services/shippingService';
 import { useAuthStore } from '../../stores/authStore';
 
 interface OrderManagerProps {
@@ -91,7 +92,11 @@ export const OrderManager: React.FC<OrderManagerProps> = ({ orders, onOrderUpdat
   const [cancelReason, setCancelReason] = useState<string>('Customer declined via WhatsApp');
 
   // Shipment feedback state
-  const [shipmentNotice, setShipmentNotice] = useState<{ id: string; text: string } | null>(null);
+  const [ithinkNotice, setIthinkNotice] = useState<{
+    orderNumber: string;
+    error: string;
+    requirements?: string[];
+  } | null>(null);
 
   // If no database orders exist yet, display the demo order for immediate testing
   const displayOrders = orders && orders.length > 0 ? orders : [DEFAULT_DEMO_ORDER];
@@ -228,7 +233,7 @@ Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your 
   };
 
   // 4. Shipment Trigger Action (available ONLY after confirmation)
-  const handleInitiateShipment = (ord: any, e?: React.MouseEvent) => {
+  const handleInitiateShipment = async (ord: any, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
 
     if (ord.status === 'pending_confirmation' || ord.status === 'pending') {
@@ -236,11 +241,31 @@ Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your 
       return;
     }
 
-    setShipmentNotice({
-      id: ord.id,
-      text: 'iThink Logistics provider adapter queued for Phase 6 dispatch.',
-    });
-    setTimeout(() => setShipmentNotice(null), 4000);
+    if (ord.isDemo) {
+      alert('Sample order simulated: Real shipment creation requires placing a live order.');
+      return;
+    }
+
+    setActionLoadingId(`ship-${ord.id}`);
+    try {
+      const res = await createIThinkShipment(ord.id);
+      if (res.success) {
+        alert(`🎉 Shipment successfully created with iThink Logistics!\nCourier: ${res.shipment?.courier_name || 'Assigned'}\nAWB: ${res.shipment?.awb_code || 'In Progress'}`);
+        onOrderUpdated();
+      } else {
+        if (res.mockMode) {
+          setIthinkNotice({
+            orderNumber: ord.order_number,
+            error: res.error || 'iThink Logistics credentials required',
+            requirements: res.requirements,
+          });
+        } else {
+          alert(`⚠️ iThink Logistics: ${res.error || 'Failed to create shipment'}`);
+        }
+      }
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   // 5. Insert Live Test Order into Supabase for testing
@@ -542,18 +567,39 @@ Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your 
 
                     {/* Shipment Trigger Button */}
                     {shipment?.awb_code ? (
-                      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold shrink-0">
-                        <Truck className="w-3 h-3 text-blue-600" />
-                        <span>AWB: {shipment.awb_code}</span>
+                      <div className="inline-flex items-center gap-1.5 shrink-0">
+                        <a
+                          href={`https://manage.ithinklogistics.com/track/${shipment.awb_code}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 text-xs font-semibold shrink-0 transition-colors"
+                          title="Track shipment on iThink Logistics"
+                        >
+                          <Truck className="w-3 h-3 text-blue-600" />
+                          <span>AWB: {shipment.awb_code}</span>
+                        </a>
+                        {shipment.shipping_label_url && (
+                          <a
+                            href={shipment.shipping_label_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold shrink-0"
+                            title="Open official shipping label"
+                          >
+                            Label 📄
+                          </a>
+                        )}
                       </div>
                     ) : (
                       <button
                         onClick={(e) => handleInitiateShipment(ord, e)}
-                        disabled={isPending || isCancelled}
+                        disabled={isPending || isCancelled || actionLoadingId === `ship-${ord.id}`}
                         className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-colors shrink-0 ${
                           isPending || isCancelled
                             ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
-                            : 'bg-brand-burgundy text-white hover:bg-[#5C0024] shadow-xs'
+                            : 'bg-brand-burgundy text-white hover:bg-[#5C0024] shadow-xs active:scale-95'
                         }`}
                         title={
                           isPending
@@ -562,7 +608,13 @@ Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your 
                         }
                       >
                         <Truck className="w-3.5 h-3.5" />
-                        <span>{isPending ? '🔒 Ship (Awaiting Conf.)' : 'Create iThink Shipment'}</span>
+                        <span>
+                          {actionLoadingId === `ship-${ord.id}`
+                            ? 'Connecting...'
+                            : isPending
+                            ? '🔒 Ship (Awaiting Conf.)'
+                            : 'Create iThink Shipment'}
+                        </span>
                       </button>
                     )}
 
@@ -575,12 +627,6 @@ Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your 
                     </div>
                   </div>
                 </div>
-
-                {shipmentNotice?.id === ord.id && (
-                  <div className="mx-4 mb-3 p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs">
-                    ℹ️ {shipmentNotice?.text}
-                  </div>
-                )}
 
                 {/* Expanded Details View */}
                 {isExpanded && (
@@ -851,6 +897,56 @@ Please reply with *CONFIRM* so our artisans can lovingly pack and dispatch your 
               >
                 {actionLoadingId === cancellingOrder.id ? 'Cancelling...' : 'Confirm Cancellation'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* iThink Logistics Safe Mock Mode / Requirements Notice Modal */}
+      {ithinkNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-md bg-white rounded-3xl border border-brand-border p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-brand-border/60">
+              <div className="flex items-center gap-2 text-brand-burgundy font-bold text-sm">
+                <Truck className="w-4 h-4 text-brand-burgundy" />
+                <span>iThink Logistics Adapter Notice</span>
+              </div>
+              <button
+                onClick={() => setIthinkNotice(null)}
+                className="w-7 h-7 rounded-full bg-brand-cream/60 hover:bg-brand-cream flex items-center justify-center text-brand-text-muted hover:text-brand-burgundy"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
+              <p className="font-bold flex items-center gap-1.5 text-[12px]">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                Safe Mock Mode Active (Order #{ithinkNotice.orderNumber})
+              </p>
+              <p className="text-[11px] leading-relaxed">
+                {ithinkNotice.error}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-semibold text-brand-burgundy text-xs">
+                To connect live shipment creation, add these secrets to your Supabase project:
+              </p>
+              <div className="bg-brand-cream/40 p-3 rounded-xl border border-brand-border/70 space-y-1.5 font-mono text-[11px] text-brand-burgundy">
+                <p>• <strong>ITHINK_COMPANY_ID</strong></p>
+                <p>• <strong>ITHINK_SECRET_KEY</strong></p>
+                <p>• <strong>ITHINK_PICKUP_ADDRESS_ID</strong></p>
+              </div>
+              <p className="text-[10px] text-brand-text-muted">
+                Run via Supabase CLI: <code>supabase secrets set ITHINK_COMPANY_ID=xxx ITHINK_SECRET_KEY=yyy</code> or configure in the Supabase Dashboard.
+              </p>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <Button variant="primary" size="sm" onClick={() => setIthinkNotice(null)}>
+                Understood
+              </Button>
             </div>
           </div>
         </div>
