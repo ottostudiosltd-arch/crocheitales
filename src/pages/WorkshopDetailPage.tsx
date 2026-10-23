@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, CheckCircle2, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { asset } from '../utils/asset';
 
 export const WorkshopDetailPage: React.FC = () => {
   const [registered, setRegistered] = useState(false);
@@ -44,7 +45,7 @@ export const WorkshopDetailPage: React.FC = () => {
 
           <div className="aspect-[16/9] rounded-3xl overflow-hidden border border-brand-border bg-white shadow-soft">
             <img
-              src="https://images.unsplash.com/photo-1544816155-12df9643f363?w=1000&auto=format&fit=crop&q=80"
+              src={asset('/images/categories/cozy-bags.webp')}
               alt="Crochet workshop"
               className="w-full h-full object-cover"
             />

@@ -56,8 +56,35 @@ interface CacheEntry {
 const productsCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 120000; // 2 minutes TTL
 
+import { PRODUCTS, CATEGORIES } from '../data/catalog';
+
+// Helper to filter static catalog products
+function filterCatalogProducts(options: FetchProductsOptions): Product[] {
+  let list = [...PRODUCTS];
+
+  if (options.categorySlug) {
+    const slugLower = options.categorySlug.toLowerCase();
+    list = list.filter(
+      (p) =>
+        p.categorySlug?.toLowerCase() === slugLower ||
+        p.category?.toLowerCase() === slugLower ||
+        (slugLower === 'winter-wear' && p.category?.toLowerCase().includes('winter'))
+    );
+  }
+
+  if (options.tag) {
+    list = list.filter((p) => p.tag?.toLowerCase() === options.tag?.toLowerCase());
+  }
+
+  if (options.limit && options.limit > 0) {
+    list = list.slice(0, options.limit);
+  }
+
+  return list;
+}
+
 /**
- * Fetch products from Supabase with optional filters & memory cache
+ * Fetch products from Supabase with optional filters & memory cache (falls back to authentic catalog)
  */
 export async function fetchProducts(options: FetchProductsOptions = {}): Promise<Product[]> {
   try {
@@ -112,35 +139,38 @@ export async function fetchProducts(options: FetchProductsOptions = {}): Promise
 
     const { data, error } = await query;
 
-    if (error) {
-      console.warn('Supabase products query failed, using empty array or fallback:', error.message);
-      return [];
-    }
-
-    if (!data || data.length === 0) {
-      return [];
+    if (error || !data || data.length === 0) {
+      const fallback = filterCatalogProducts(options);
+      productsCache.set(cacheKey, { data: fallback, timestamp: Date.now() });
+      return fallback;
     }
 
     let products = data.map(mapDatabaseProduct);
 
     if (options.categorySlug) {
+      const slugLower = options.categorySlug.toLowerCase();
       products = products.filter(
-        (p) => p.category?.toLowerCase() === options.categorySlug?.toLowerCase()
+        (p) => p.category?.toLowerCase() === slugLower
       );
+    }
+
+    if (products.length === 0) {
+      const fallback = filterCatalogProducts(options);
+      productsCache.set(cacheKey, { data: fallback, timestamp: Date.now() });
+      return fallback;
     }
 
     // Cache results for 2 minutes to protect free tier
     productsCache.set(cacheKey, { data: products, timestamp: Date.now() });
-
     return products;
   } catch (err) {
     console.error('Error fetching products:', err);
-    return [];
+    return filterCatalogProducts(options);
   }
 }
 
 /**
- * Fetch a single product by its slug
+ * Fetch a single product by its slug (with fallback to authentic catalog)
  */
 export async function fetchProductBySlug(slug: string): Promise<any> {
   try {
@@ -197,27 +227,79 @@ export async function fetchProductBySlug(slug: string): Promise<any> {
       data = fallbackQuery.data;
     }
 
-    if (!data) {
-      return null;
+    if (data) {
+      // Map all product image URLs through asset()
+      if (data.product_images && Array.isArray(data.product_images)) {
+        data.product_images = data.product_images.map((img: any) => ({
+          ...img,
+          image_url: asset(img.image_url),
+        }));
+      }
+      return data;
     }
 
-    // Map all product image URLs through asset()
-    if (data.product_images && Array.isArray(data.product_images)) {
-      data.product_images = data.product_images.map((img: any) => ({
-        ...img,
-        image_url: asset(img.image_url),
-      }));
+    // Fallback to local catalog
+    const localMatch = PRODUCTS.find(
+      (p) => p.slug === slug || p.slug === targetSlug || p.slug.includes(slug) || slug.includes(p.slug)
+    );
+
+    if (localMatch) {
+      return {
+        id: localMatch.id,
+        slug: localMatch.slug,
+        title: localMatch.title,
+        price_minor: majorToMinor(localMatch.price),
+        compare_at_price_minor: localMatch.originalPrice ? majorToMinor(localMatch.originalPrice) : null,
+        rating: localMatch.rating,
+        review_count: localMatch.reviewCount,
+        stock_quantity: 15,
+        is_active: true,
+        short_description: localMatch.shortDescription,
+        description: localMatch.description,
+        materials: localMatch.materials,
+        care: localMatch.care,
+        categories: {
+          name: localMatch.category,
+          slug: localMatch.categorySlug,
+        },
+        product_images: (localMatch.images || [localMatch.imageUrl]).map((url, idx) => ({
+          id: `img-${localMatch.id}-${idx}`,
+          image_url: url,
+          alt_text: localMatch.title,
+          is_primary: idx === 0,
+          sort_order: idx,
+        })),
+      };
     }
 
-    return data;
+    return null;
   } catch (err) {
     console.error('Error fetching product by slug:', err);
+    const localMatch = PRODUCTS.find((p) => p.slug === slug || slug.includes(p.slug));
+    if (localMatch) {
+      return {
+        id: localMatch.id,
+        slug: localMatch.slug,
+        title: localMatch.title,
+        price_minor: majorToMinor(localMatch.price),
+        compare_at_price_minor: localMatch.originalPrice ? majorToMinor(localMatch.originalPrice) : null,
+        rating: localMatch.rating,
+        review_count: localMatch.reviewCount,
+        stock_quantity: 15,
+        short_description: localMatch.shortDescription,
+        description: localMatch.description,
+        materials: localMatch.materials,
+        care: localMatch.care,
+        categories: { name: localMatch.category, slug: localMatch.categorySlug },
+        product_images: [{ id: '1', image_url: localMatch.imageUrl, is_primary: true, sort_order: 0 }],
+      };
+    }
     return null;
   }
 }
 
 /**
- * Fetch all active categories
+ * Fetch all active categories (with fallback to authentic catalog)
  */
 export async function fetchCategories() {
   try {
@@ -227,15 +309,31 @@ export async function fetchCategories() {
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
 
-    if (error) {
-      console.warn('Error fetching categories:', error.message);
-      return [];
+    if (!error && data && data.length > 0) {
+      return data;
     }
 
-    return data || [];
+    // Fallback to local catalog
+    return CATEGORIES.map((c, i) => ({
+      id: c.id,
+      name: c.title,
+      slug: c.slug,
+      description: c.description,
+      image_url: c.image,
+      sort_order: i,
+      is_active: true,
+    }));
   } catch (err) {
     console.error('Error in fetchCategories:', err);
-    return [];
+    return CATEGORIES.map((c, i) => ({
+      id: c.id,
+      name: c.title,
+      slug: c.slug,
+      description: c.description,
+      image_url: c.image,
+      sort_order: i,
+      is_active: true,
+    }));
   }
 }
 
@@ -263,9 +361,22 @@ export async function fetchAllAdminProducts() {
       `)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching admin products:', error);
-      return [];
+    if (error || !data || data.length === 0) {
+      return PRODUCTS.map((p) => ({
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        sku: p.id.toUpperCase(),
+        displayPrice: p.price,
+        displayCompareAtPrice: p.originalPrice || null,
+        stock_quantity: 15,
+        is_featured: p.tag === 'Bestseller',
+        is_active: true,
+        tag: p.tag || null,
+        short_description: p.shortDescription || p.description,
+        imageUrl: p.imageUrl,
+        categoryName: p.category,
+      }));
     }
 
     return (data || []).map((row: any) => {
@@ -283,7 +394,21 @@ export async function fetchAllAdminProducts() {
     });
   } catch (err) {
     console.error('Error in fetchAllAdminProducts:', err);
-    return [];
+    return PRODUCTS.map((p) => ({
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      sku: p.id.toUpperCase(),
+      displayPrice: p.price,
+      displayCompareAtPrice: p.originalPrice || null,
+      stock_quantity: 15,
+      is_featured: p.tag === 'Bestseller',
+      is_active: true,
+      tag: p.tag || null,
+      short_description: p.shortDescription || p.description,
+      imageUrl: p.imageUrl,
+      categoryName: p.category,
+    }));
   }
 }
 

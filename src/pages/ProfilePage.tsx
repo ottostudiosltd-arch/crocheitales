@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCustomerStore } from '../stores/customerStore';
+import { PRODUCTS } from '../data/catalog';
 
 export const ProfilePage: React.FC = () => {
   const { profile, setProfile, recentOrderNumbers } = useCustomerStore();
@@ -85,7 +86,7 @@ export const ProfilePage: React.FC = () => {
           to="/shop"
           className="p-3 sm:p-4 rounded-2xl bg-white border border-[#F2DCD1] text-center shadow-2xs hover:shadow-xs hover:border-[#79002F]/40 transition-all"
         >
-          <p className="text-lg sm:text-xl font-serif font-bold text-[#79002F]">8</p>
+          <p className="text-lg sm:text-xl font-serif font-bold text-[#79002F]">{PRODUCTS.length}</p>
           <p className="text-[10px] sm:text-xs text-[#79002F]/75 mt-0.5 font-medium">Boutique Pieces</p>
         </Link>
 

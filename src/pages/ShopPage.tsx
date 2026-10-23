@@ -5,13 +5,12 @@ import {
   List,
   Flower2,
   Shirt,
-  Gift,
   ChevronsUpDown,
   Check,
 } from 'lucide-react';
 import { ProductCard, type Product } from '../components/shop/ProductCard';
-import { asset } from '../utils/asset';
 import { fetchProducts } from '../services/productService';
+import { PRODUCTS } from '../data/catalog';
 
 // Custom icons matching client mockup
 const BowIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -28,17 +27,6 @@ const KeychainIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const PlushieIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="13" r="7.5" />
-    <circle cx="6.5" cy="6.5" r="3" />
-    <circle cx="17.5" cy="6.5" r="3" />
-    <circle cx="9.5" cy="12" r="0.8" fill="currentColor" />
-    <circle cx="14.5" cy="12" r="0.8" fill="currentColor" />
-    <path d="M10 15.5c1 .5 3 .5 4 0" />
-  </svg>
-);
-
 export const ShopPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const urlQuery = searchParams.get('q') || '';
@@ -49,170 +37,13 @@ export const ShopPage: React.FC = () => {
 
   const categories = [
     { label: 'All', icon: LayoutGrid },
-    { label: 'Flower Bouquets', icon: Flower2 },
+    { label: 'Winter Wear', icon: Shirt },
     { label: 'Hair Accessories', icon: BowIcon },
     { label: 'Keychains', icon: KeychainIcon },
-    { label: 'Wearables', icon: Shirt },
-    { label: 'Plushies', icon: PlushieIcon },
-    { label: 'Gift Sets', icon: Gift },
+    { label: 'Flower Bouquets', icon: Flower2 },
   ];
 
-  const initialProducts: Product[] = [
-    {
-      id: 'prod-1',
-      slug: 'tulip-crochet-bouquet',
-      title: 'Tulip Crochet Bouquet',
-      price: 999,
-      originalPrice: 1299,
-      rating: 4.8,
-      reviewCount: 124,
-      imageUrl: asset('/images/products/tulip-bouquet.webp'),
-      category: 'Flower Bouquets',
-      tag: 'Bestseller',
-      inStock: true,
-    },
-    {
-      id: 'prod-2',
-      slug: 'bow-hair-clip',
-      title: 'Bow Hair Clip (Pink)',
-      price: 149,
-      originalPrice: 249,
-      rating: 4.6,
-      reviewCount: 98,
-      imageUrl: asset('/images/products/bow-hair-clip.webp'),
-      category: 'Hair Accessories',
-      tag: 'Sale',
-      inStock: true,
-    },
-    {
-      id: 'prod-3',
-      slug: 'daisy-keychain',
-      title: 'Daisy Charm Keychain',
-      price: 199,
-      rating: 4.7,
-      reviewCount: 76,
-      imageUrl: asset('/images/products/daisy-keychain.webp'),
-      category: 'Keychains',
-      inStock: true,
-    },
-    {
-      id: 'prod-4',
-      slug: 'crochet-cherry-charm',
-      title: 'Double Cherry Bag Charm',
-      price: 299,
-      rating: 4.9,
-      reviewCount: 45,
-      imageUrl: asset('/images/products/cherry-bag-charm.webp'),
-      category: 'Keychains',
-      tag: 'New',
-      inStock: true,
-    },
-    {
-      id: 'prod-5',
-      slug: 'crochet-bunny-plushie',
-      title: 'Crochet Bunny Plushie',
-      price: 799,
-      originalPrice: 999,
-      rating: 4.9,
-      reviewCount: 88,
-      imageUrl: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=600&auto=format&fit=crop&q=80',
-      category: 'Plushies',
-      tag: 'New',
-      inStock: true,
-    },
-    {
-      id: 'prod-6',
-      slug: 'sunflower-crochet-bouquet',
-      title: 'Sunflower Crochet Bouquet',
-      price: 899,
-      originalPrice: 1199,
-      rating: 4.9,
-      reviewCount: 112,
-      imageUrl: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=600&auto=format&fit=crop&q=80',
-      category: 'Flower Bouquets',
-      tag: 'Bestseller',
-      inStock: true,
-    },
-    {
-      id: 'prod-7',
-      slug: 'bunny-keychain-charm',
-      title: 'Bunny Keychain Charm',
-      price: 249,
-      originalPrice: 349,
-      rating: 4.7,
-      reviewCount: 64,
-      imageUrl: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80',
-      category: 'Keychains',
-      tag: 'Sale',
-      inStock: true,
-    },
-    {
-      id: 'prod-8',
-      slug: 'daisy-knit-cardigan',
-      title: 'Daisy Knit Cardigan',
-      price: 2499,
-      originalPrice: 2999,
-      rating: 5.0,
-      reviewCount: 39,
-      imageUrl: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600&auto=format&fit=crop&q=80',
-      category: 'Wearables',
-      tag: 'Bestseller',
-      inStock: true,
-    },
-    {
-      id: 'prod-9',
-      slug: 'pastel-rose-bouquet',
-      title: 'Pastel Rose Crochet Bouquet',
-      price: 949,
-      originalPrice: 1299,
-      rating: 4.8,
-      reviewCount: 52,
-      imageUrl: 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=600&auto=format&fit=crop&q=80',
-      category: 'Flower Bouquets',
-      tag: 'New',
-      inStock: true,
-    },
-    {
-      id: 'prod-10',
-      slug: 'floral-hair-scrunchie',
-      title: 'Floral Crochet Hair Scrunchie',
-      price: 189,
-      originalPrice: 269,
-      rating: 4.7,
-      reviewCount: 41,
-      imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&auto=format&fit=crop&q=80',
-      category: 'Hair Accessories',
-      tag: 'Sale',
-      inStock: true,
-    },
-    {
-      id: 'prod-11',
-      slug: 'strawberry-bag-charm',
-      title: 'Strawberry Bag Charm',
-      price: 229,
-      rating: 4.8,
-      reviewCount: 85,
-      imageUrl: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600&auto=format&fit=crop&q=80',
-      category: 'Keychains',
-      tag: 'Bestseller',
-      inStock: true,
-    },
-    {
-      id: 'prod-12',
-      slug: 'crochet-cozy-gift-box',
-      title: 'Crochet Cozy Gift Box',
-      price: 1299,
-      originalPrice: 1699,
-      rating: 4.9,
-      reviewCount: 36,
-      imageUrl: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&auto=format&fit=crop&q=80',
-      category: 'Gift Sets',
-      tag: 'Bestseller',
-      inStock: true,
-    },
-  ];
- 
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
 
   useEffect(() => {
     fetchProducts().then((dbProducts) => {

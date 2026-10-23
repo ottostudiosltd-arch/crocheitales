@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { SectionHeading } from '../components/ui/SectionHeading';
 import { ProductCard, type Product } from '../components/shop/ProductCard';
+import { asset } from '../utils/asset';
 
 export const DesignSystemShowcase: React.FC = () => {
   const [cartCount, setCartCount] = useState(2);
@@ -19,7 +20,7 @@ export const DesignSystemShowcase: React.FC = () => {
     originalPrice: 1199,
     rating: 4.8,
     reviewCount: 124,
-    imageUrl: 'https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=600&auto=format&fit=crop&q=80',
+    imageUrl: asset('/images/products/tulip-bouquet.webp'),
     tag: 'Bestseller',
     inStock: true,
   };
@@ -31,7 +32,7 @@ export const DesignSystemShowcase: React.FC = () => {
     price: 249,
     rating: 4.6,
     reviewCount: 98,
-    imageUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80',
+    imageUrl: asset('/images/products/bow-hair-clip.webp'),
     tag: 'Sale',
     inStock: true,
   };
@@ -43,7 +44,7 @@ export const DesignSystemShowcase: React.FC = () => {
     price: 199,
     rating: 4.7,
     reviewCount: 76,
-    imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80',
+    imageUrl: asset('/images/products/daisy-keychain.webp'),
     inStock: true,
   };
 

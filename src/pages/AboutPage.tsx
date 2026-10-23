@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, Sparkles, Truck, Gift, MessageCircle, ArrowRight } from 'lucide-react';
+import { asset } from '../utils/asset';
 
 
 // 8-Lobe Scalloped Pink Flower Badge matching the boutique aesthetic
@@ -71,7 +72,7 @@ export const AboutPage: React.FC = () => {
           {/* Featured Story Photo */}
           <div className="relative w-full aspect-[16/10] sm:aspect-[21/9] rounded-2xl overflow-hidden mt-4 shadow-inner bg-[#FDE7EC] border border-[#FAD3DC]/60">
             <img
-              src="https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=1000&auto=format&fit=crop&q=80"
+              src={asset('/images/categories/mixed-flower-bouquets.webp')}
               alt="Artisan crocheting with milk cotton yarn"
               className="w-full h-full object-cover"
               loading="eager"

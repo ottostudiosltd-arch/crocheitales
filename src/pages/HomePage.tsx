@@ -40,132 +40,109 @@ const ScallopFlowerBadge: React.FC<{ children: React.ReactNode }> = ({ children 
   </div>
 );
 
+import { PRODUCTS } from '../data/catalog';
+
 export const HomePage: React.FC = () => {
   // Mobile Categories for horizontal scroll
   const mobileCategories = [
     {
-      title: 'Flower Bouquets',
-      slug: 'flower-bouquets',
-      image: asset('/images/mockup/cat-flower-bouquets.webp'),
+      title: 'Winter Wear',
+      slug: 'winter-wear',
+      image: asset('/images/categories/winter-wear.webp'),
+    },
+    {
+      title: 'Forever Flowers',
+      slug: 'forever-flowers',
+      image: asset('/images/categories/forever-flowers.webp'),
     },
     {
       title: 'Hair Accessories',
       slug: 'hair-accessories',
-      image: asset('/images/mockup/cat-hair-accessories.webp'),
+      image: asset('/images/categories/hair-accessories.webp'),
     },
     {
       title: 'Keychains',
       slug: 'keychains',
-      image: asset('/images/mockup/cat-keychains.webp'),
+      image: asset('/images/categories/keychains.webp'),
     },
     {
-      title: 'Wearables',
-      slug: 'wearables',
-      image: asset('/images/mockup/cat-wearables.webp'),
+      title: 'Cozy Bags',
+      slug: 'cozy-bags',
+      image: asset('/images/categories/cozy-bags.webp'),
+    },
+    {
+      title: 'Sunflower Bouquets',
+      slug: 'sunflower-bouquets',
+      image: asset('/images/categories/sunflower-bouquets.webp'),
     },
     {
       title: 'Plushies',
       slug: 'plushies',
-      image: asset('/images/mockup/cat-plushies.webp'),
+      image: asset('/images/categories/plushies.webp'),
+    },
+    {
+      title: 'Curtain Holders',
+      slug: 'curtain-holders',
+      image: asset('/images/categories/curtain-holders.webp'),
     },
   ];
 
-  // Initial Bestsellers matching client reference
-  const initialBestsellers: Product[] = [
-    {
-      id: 'best-1',
-      slug: 'bow-hair-clip',
-      title: 'Bow Hair Clip',
-      price: 149,
-      originalPrice: 249,
-      rating: 4.6,
-      reviewCount: 98,
-      imageUrl: asset('/images/products/bow-hair-clip.webp'),
-      category: 'Hair Accessories',
-      tag: 'Bestseller',
-      inStock: true,
-    },
-    {
-      id: 'best-2',
-      slug: 'daisy-keychain',
-      title: 'Daisy Keychain',
-      price: 199,
-      originalPrice: 299,
-      rating: 4.7,
-      reviewCount: 76,
-      imageUrl: asset('/images/products/daisy-keychain.webp'),
-      category: 'Keychains',
-      tag: 'Sale',
-      inStock: true,
-    },
-    {
-      id: 'best-3',
-      slug: 'tulip-crochet-bouquet',
-      title: 'Tulip Bouquet',
-      price: 999,
-      originalPrice: 1299,
-      rating: 4.8,
-      reviewCount: 124,
-      imageUrl: asset('/images/products/tulip-bouquet.webp'),
-      category: 'Flower Bouquets',
-      tag: 'Bestseller',
-      inStock: true,
-    },
-  ];
+  // Initial Bestsellers matching authentic winter & boutique catalog
+  const initialBestsellers: Product[] = PRODUCTS.slice(0, 8);
 
   const [bestsellers, setBestsellers] = useState<Product[]>(initialBestsellers);
 
   useEffect(() => {
-    fetchProducts({ limit: 6 }).then((dbProducts) => {
+    fetchProducts({ limit: 8 }).then((dbProducts) => {
       if (dbProducts && dbProducts.length > 0) {
         setBestsellers(dbProducts);
       }
     });
   }, []);
 
-  // Desktop Categories (6 full categories)
+  // Desktop Featured Categories (6 prominent categories)
   const categories = [
     {
+      title: 'Winter Wear',
+      subtitle: 'Cardigans, mufflers & gloves',
+      slug: 'winter-wear',
+      image: asset('/images/categories/winter-wear.webp'),
+      badge: '🧶',
+    },
+    {
       title: 'Hair Accessories',
-      subtitle: 'Clips, scrunchies & more',
+      subtitle: 'Clips, bows & scrunchies',
       slug: 'hair-accessories',
-      image: asset('/images/mockup/cat-hair-accessories.webp'),
+      image: asset('/images/categories/hair-accessories.webp'),
       badge: '🎀',
     },
     {
       title: 'Keychains',
       subtitle: 'Cute charms & bag tags',
       slug: 'keychains',
-      image: asset('/images/mockup/cat-keychains.webp'),
+      image: asset('/images/categories/keychains.webp'),
       badge: '✨',
     },
     {
-      title: 'Flower Bouquets',
+      title: 'Forever Flowers',
       subtitle: 'Everlasting floral blooms',
-      slug: 'flower-bouquets',
-      image: asset('/images/mockup/cat-flower-bouquets.webp'),
+      slug: 'forever-flowers',
+      image: asset('/images/categories/forever-flowers.webp'),
       badge: '🌸',
     },
     {
-      title: 'Wearables',
-      subtitle: 'Tops, hats & mufflers',
-      slug: 'wearables',
-      image: asset('/images/mockup/cat-wearables.webp'),
-      badge: '🧶',
+      title: 'Sunflower Bouquets',
+      subtitle: 'Bright sunny blossoms',
+      slug: 'sunflower-bouquets',
+      image: asset('/images/categories/sunflower-bouquets.webp'),
+      badge: '🌻',
     },
     {
-      title: 'Plushies',
-      subtitle: 'Soft snuggly companions',
-      slug: 'plushies',
-      image: asset('/images/mockup/cat-plushies.webp'),
-      badge: '🧸',
-    },
-    {
-      title: 'Other Things',
-      subtitle: 'Bookmarks, coasters & more',
-      slug: 'other-things',
-      image: asset('/images/mockup/cat-other-things.webp'),
-      badge: '♡',
+      title: 'Cozy Bags',
+      subtitle: 'Totes & shoulder bags',
+      slug: 'cozy-bags',
+      image: asset('/images/categories/cozy-bags.webp'),
+      badge: '👜',
     },
   ];
 
@@ -632,9 +609,11 @@ export const HomePage: React.FC = () => {
             <div className="grid grid-cols-12 gap-8 items-center">
               <div className="col-span-5 aspect-[4/3] rounded-2xl overflow-hidden shadow-inner bg-white/70">
                 <img
-                  src="https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=1000&auto=format&fit=crop&q=80"
+                  src={asset('/images/categories/mixed-flower-bouquets.webp')}
                   alt="Crochei Tales Story"
                   className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
 

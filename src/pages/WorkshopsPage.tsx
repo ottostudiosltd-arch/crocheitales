@@ -5,6 +5,8 @@ import { SectionHeading } from '../components/ui/SectionHeading';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 
+import { asset } from '../utils/asset';
+
 export const WorkshopsPage: React.FC = () => {
   const workshops = [
     {
@@ -20,7 +22,7 @@ export const WorkshopsPage: React.FC = () => {
       price: 1499,
       capacity: 12,
       bookedCount: 9,
-      imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80',
+      imageUrl: asset('/images/categories/cozy-bags.webp'),
       badge: 'Almost Full',
     },
     {
@@ -36,7 +38,7 @@ export const WorkshopsPage: React.FC = () => {
       price: 1199,
       capacity: 20,
       bookedCount: 11,
-      imageUrl: 'https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=600&auto=format&fit=crop&q=80',
+      imageUrl: asset('/images/categories/forever-flowers.webp'),
       badge: 'Popular',
     },
     {
@@ -52,7 +54,7 @@ export const WorkshopsPage: React.FC = () => {
       price: 1899,
       capacity: 10,
       bookedCount: 4,
-      imageUrl: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=600&auto=format&fit=crop&q=80',
+      imageUrl: asset('/images/categories/plushies.webp'),
       badge: 'New',
     },
   ];

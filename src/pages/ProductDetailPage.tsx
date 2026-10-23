@@ -43,8 +43,6 @@ export const ProductDetailPage: React.FC = () => {
     reviewCount: 124,
     images: [
       asset('/images/products/tulip-bouquet.webp'),
-      'https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=800&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80',
     ],
     description:
       'Everlasting spring captured in soft threads. Our Tulip Crochet Bouquet features five vibrant hand-knitted blooms carefully wrapped in artisanal craft paper and finished with a delicate lace ribbon.',
