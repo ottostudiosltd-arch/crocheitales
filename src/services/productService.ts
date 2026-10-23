@@ -58,8 +58,8 @@ const CACHE_TTL_MS = 120000; // 2 minutes TTL
 
 import { PRODUCTS, CATEGORIES } from '../data/catalog';
 
-// Helper to filter static catalog products
-function filterCatalogProducts(options: FetchProductsOptions): Product[] {
+// Helper to filter static catalog products (exported for instant 0ms initial render)
+export function filterCatalogProducts(options: FetchProductsOptions): Product[] {
   let list = [...PRODUCTS];
 
   if (options.categorySlug) {
@@ -81,6 +81,16 @@ function filterCatalogProducts(options: FetchProductsOptions): Product[] {
   }
 
   return list;
+}
+
+// Fast timeout helper to protect mobile users from slow or cold-start network calls
+function withTimeout<T = any>(promise: PromiseLike<T>, ms = 1500): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Network query timed out')), ms)
+    ),
+  ]);
 }
 
 /**
@@ -137,7 +147,12 @@ export async function fetchProducts(options: FetchProductsOptions = {}): Promise
       query = query.limit(options.limit);
     }
 
-    const { data, error } = await query;
+    const result: any = await withTimeout(query, 1500).catch((err) => {
+      return { data: null, error: err };
+    });
+
+    const data = result?.data;
+    const error = result?.error;
 
     if (error || !data || data.length === 0) {
       const fallback = filterCatalogProducts(options);
@@ -150,7 +165,7 @@ export async function fetchProducts(options: FetchProductsOptions = {}): Promise
     if (options.categorySlug) {
       const slugLower = options.categorySlug.toLowerCase();
       products = products.filter(
-        (p) => p.category?.toLowerCase() === slugLower
+        (p: Product) => p.category?.toLowerCase() === slugLower
       );
     }
 
@@ -176,33 +191,8 @@ export async function fetchProductBySlug(slug: string): Promise<any> {
   try {
     const targetSlug = slug === 'tulip-crochet-bouquet' ? 'tulip-bouquet' : slug;
 
-    const initialQuery = await supabase
-      .from('products')
-      .select(`
-        *,
-        categories (
-          id,
-          name,
-          slug
-        ),
-        product_images (
-          id,
-          image_url,
-          alt_text,
-          sort_order,
-          is_primary
-        )
-      `)
-      .or(`slug.eq.${slug},slug.eq.${targetSlug}`)
-      .eq('is_active', true)
-      .maybeSingle();
-
-    let data: any = initialQuery.data;
-
-    if (!data) {
-      // Fallback matching first segment of slug
-      const prefix = slug.split('-')[0];
-      const fallbackQuery: any = await supabase
+    const initialQuery = await withTimeout(
+      supabase
         .from('products')
         .select(`
           *,
@@ -219,12 +209,43 @@ export async function fetchProductBySlug(slug: string): Promise<any> {
             is_primary
           )
         `)
-        .ilike('slug', `%${prefix}%`)
+        .or(`slug.eq.${slug},slug.eq.${targetSlug}`)
         .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
+        .maybeSingle(),
+      1500
+    ).catch(() => ({ data: null }));
 
-      data = fallbackQuery.data;
+    let data: any = initialQuery?.data;
+
+    if (!data) {
+      // Fallback matching first segment of slug
+      const prefix = slug.split('-')[0];
+      const fallbackQuery: any = await withTimeout(
+        supabase
+          .from('products')
+          .select(`
+            *,
+            categories (
+              id,
+              name,
+              slug
+            ),
+            product_images (
+              id,
+              image_url,
+              alt_text,
+              sort_order,
+              is_primary
+            )
+          `)
+          .ilike('slug', `%${prefix}%`)
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle(),
+        1000
+      ).catch(() => ({ data: null }));
+
+      data = fallbackQuery?.data;
     }
 
     if (data) {
@@ -303,11 +324,17 @@ export async function fetchProductBySlug(slug: string): Promise<any> {
  */
 export async function fetchCategories() {
   try {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true });
+    const result: any = await withTimeout(
+      supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true }),
+      1500
+    ).catch((err) => ({ data: null, error: err }));
+
+    const data = result?.data;
+    const error = result?.error;
 
     if (!error && data && data.length > 0) {
       return data;

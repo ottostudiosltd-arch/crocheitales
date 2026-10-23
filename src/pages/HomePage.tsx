@@ -259,7 +259,7 @@ export const HomePage: React.FC = () => {
             </div>
 
             <Link
-              to="/shop"
+              to="/categories"
               className="text-xs font-semibold text-[#79002F] flex items-center gap-1 hover:underline"
             >
               <span>See All</span>
@@ -273,7 +273,7 @@ export const HomePage: React.FC = () => {
               <Link
                 key={cat.slug}
                 to={`/categories/${cat.slug}`}
-                className="w-28 xs:w-32 shrink-0 aspect-[3/4] rounded-2xl overflow-hidden relative border border-[#FAD3DC]/80 shadow-2xs group bg-white"
+                className="w-28 xs:w-32 shrink-0 aspect-[3/4] rounded-2xl overflow-hidden relative border border-[#FAD3DC]/80 shadow-2xs group bg-[#FFF4F6] shimmer-effect"
               >
                 <img
                   src={cat.image}

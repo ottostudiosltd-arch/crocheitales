@@ -1,18 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const defaultUrl = 'https://rclxmrnzqpcdnojxahem.supabase.co';
+const defaultKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjbHhtcm56cXBjZG5vanhhaGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5NzgyODksImV4cCI6MjEwNzU1NDI4OX0.sDO0OPc6bEzjdnvt1m2QnoZt52V7Tl6DvzjylBk5mJc';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    '⚠️ Supabase URL or Anon Key is missing. Check your .env file or environment settings.'
-  );
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || defaultUrl;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || defaultKey;
+
+export const isSupabaseConfigured = Boolean(
+  supabaseUrl && !supabaseUrl.includes('placeholder')
+);
 
 export const supabase = createClient<Database>(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-anon-key',
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       persistSession: true,

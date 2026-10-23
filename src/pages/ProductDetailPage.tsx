@@ -1,66 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Star, Heart, ShoppingBag, Truck, ShieldCheck, ArrowLeft, Plus, Minus, Check } from 'lucide-react';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
+import { Star, ShoppingBag, Truck, ShieldCheck, ArrowLeft, Plus, Minus, Check } from 'lucide-react';
 import { fetchProductBySlug } from '../services/productService';
 import { minorToMajor } from '../lib/supabase';
 import { useCartStore } from '../stores/cartStore';
 import { asset } from '../utils/asset';
+import { PRODUCTS } from '../data/catalog';
+import { ProductDetailSkeleton } from '../components/ui/Skeleton';
 
+interface ProductDetail {
+  id: string;
+  slug: string;
+  title: string;
+  price: number;
+  originalPrice?: number;
+  rating: number;
+  reviewCount: number;
+  images: string[];
+  description: string;
+  materials: string;
+  care: string;
+  inStock: boolean;
+}
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [quantity, setQuantity] = useState(1);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [addedToast, setAddedToast] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const addItemToCart = useCartStore((s) => s.addItem);
 
-  interface ProductDetail {
-    id: string;
-    slug: string;
-    title: string;
-    price: number;
-    originalPrice?: number;
-    rating: number;
-    reviewCount: number;
-    images: string[];
-    description: string;
-    materials: string;
-    care: string;
-    inStock: boolean;
-  }
+  // Instant in-memory fallback lookup
+  const initialLocal = PRODUCTS.find(
+    (p) => p.slug === slug || p.slug === (slug === 'tulip-crochet-bouquet' ? 'tulip-bouquet' : slug)
+  );
 
-  const defaultProduct: ProductDetail = {
-    id: 'prod-1',
-    slug: 'tulip-bouquet',
-    title: 'Tulip Crochet Bouquet',
-    price: 899,
-    originalPrice: 1199,
-    rating: 4.8,
-    reviewCount: 124,
-    images: [
-      asset('/images/products/tulip-bouquet.webp'),
-    ],
-    description:
-      'Everlasting spring captured in soft threads. Our Tulip Crochet Bouquet features five vibrant hand-knitted blooms carefully wrapped in artisanal craft paper and finished with a delicate lace ribbon.',
-    materials: '100% premium milk cotton yarn, flexible florist wire stem, hypoallergenic fill.',
-    care: 'Gently dust with a soft brush. Keep away from direct water immersion.',
-    inStock: true,
-  };
+  const initialProduct: ProductDetail | null = initialLocal
+    ? {
+        id: initialLocal.id,
+        slug: initialLocal.slug,
+        title: initialLocal.title,
+        price: initialLocal.price,
+        originalPrice: initialLocal.originalPrice,
+        rating: initialLocal.rating || 5.0,
+        reviewCount: initialLocal.reviewCount || 0,
+        images: initialLocal.images || [initialLocal.imageUrl],
+        description: initialLocal.description || initialLocal.shortDescription || '',
+        materials: initialLocal.materials || '100% premium milk cotton yarn, handcrafted with love.',
+        care: initialLocal.care || 'Gently hand wash in cool water. Dry flat in shade.',
+        inStock: initialLocal.inStock ?? true,
+      }
+    : null;
 
-  const [product, setProduct] = useState<ProductDetail>(defaultProduct);
+  const [product, setProduct] = useState<ProductDetail | null>(initialProduct);
+  const [loading, setLoading] = useState(!initialProduct);
 
   useEffect(() => {
     if (!slug) return;
+    if (!product) setLoading(true);
 
     fetchProductBySlug(slug).then((data) => {
       if (data) {
         const imageList = data.product_images?.length
           ? data.product_images.sort((a: any, b: any) => a.sort_order - b.sort_order).map((img: any) => asset(img.image_url))
-          : defaultProduct.images;
+          : (product?.images || []);
 
         setProduct({
           id: data.id,
@@ -71,16 +76,18 @@ export const ProductDetailPage: React.FC = () => {
           rating: data.rating ? Number(data.rating) : 5.0,
           reviewCount: data.review_count || 0,
           images: imageList,
-          description: data.description || data.short_description || defaultProduct.description,
-          materials: defaultProduct.materials,
-          care: defaultProduct.care,
+          description: data.description || data.short_description || product?.description || '',
+          materials: data.materials || product?.materials || '100% premium milk cotton yarn, handcrafted with love.',
+          care: data.care || product?.care || 'Gently hand wash in cool water. Dry flat in shade.',
           inStock: (data.stock_quantity ?? 0) > 0,
         });
       }
+      setLoading(false);
     });
   }, [slug]);
 
   const handleAddToCart = () => {
+    if (!product) return;
     addItemToCart(
       {
         id: product.id,
@@ -96,8 +103,27 @@ export const ProductDetailPage: React.FC = () => {
     setTimeout(() => setAddedToast(false), 2400);
   };
 
+  if (loading && !product) {
+    return <ProductDetailSkeleton />;
+  }
+
+  if (!product) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
+        <h2 className="text-2xl font-serif font-bold text-[#5C0024]">Product Not Found</h2>
+        <p className="text-xs text-[#79002F]/75">The requested handcrafted piece could not be located.</p>
+        <Link
+          to="/shop"
+          className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full bg-[#79002F] text-white text-xs font-semibold"
+        >
+          <span>Return to Shop</span>
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8 animate-fade-in">
       {/* Toast Notification */}
       {addedToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#79002F] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-xs sm:text-sm animate-in fade-in slide-in-from-bottom-4 duration-200">
@@ -109,137 +135,145 @@ export const ProductDetailPage: React.FC = () => {
       {/* Back to Shop link */}
       <Link
         to="/shop"
-        className="inline-flex items-center gap-2 text-sm text-brand-burgundy hover:underline"
+        className="inline-flex items-center gap-2 text-xs sm:text-sm text-[#79002F] font-semibold hover:underline group"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
         <span>Back to Shop</span>
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
-        {/* Left: Product Images Gallery */}
-        <div className="lg:col-span-7 space-y-4">
-          <div className="w-full aspect-square rounded-3xl overflow-hidden border border-brand-border bg-white shadow-soft">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
+        {/* Left: Product Images Gallery with Shimmer */}
+        <div className="lg:col-span-7 space-y-3.5">
+          <div className="relative w-full aspect-square rounded-3xl overflow-hidden border border-[#FAD3DC] bg-[#FFF4F6] shadow-sm">
+            {!imageLoaded && (
+              <div className="absolute inset-0 shimmer-effect pointer-events-none" />
+            )}
             <img
               src={asset(product.images[selectedImage] || product.images[0])}
               alt={product.title}
-              className="w-full h-full object-cover transition-all duration-300"
+              onLoad={() => setImageLoaded(true)}
+              className={`w-full h-full object-cover transition-all duration-500 ${
+                imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}
             />
           </div>
 
-          <div className="flex items-center gap-3 overflow-x-auto pb-1">
-            {product.images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setSelectedImage(idx)}
-                className={`w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0 ${
-                  selectedImage === idx
-                    ? 'border-brand-burgundy ring-2 ring-brand-blush'
-                    : 'border-brand-border hover:opacity-80'
-                }`}
-              >
-                <img src={asset(img)} alt="Thumbnail" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
+          {product.images.length > 1 && (
+            <div className="flex items-center gap-2.5 overflow-x-auto pb-1 no-scrollbar">
+              {product.images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setSelectedImage(idx);
+                    setImageLoaded(false);
+                  }}
+                  className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0 bg-white shadow-2xs ${
+                    selectedImage === idx
+                      ? 'border-[#79002F] ring-2 ring-[#FAD3DC]'
+                      : 'border-[#F2DCD1] hover:opacity-80'
+                  }`}
+                >
+                  <img src={asset(img)} alt="Thumbnail" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right: Product Details & Purchase Actions */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 space-y-5">
           <div className="space-y-2">
-            <Badge variant="bestseller">Handmade with Love ♡</Badge>
-            <h1 className="text-3xl sm:text-4xl font-serif text-brand-burgundy font-normal">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-[#FFF0F3] text-[#79002F] border border-[#FAD3DC]">
+              Handmade with Love ♡
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-serif text-[#5C0024] font-bold">
               {product.title}
             </h1>
 
             {/* Rating */}
-            <div className="flex items-center gap-2 text-sm text-brand-text-muted">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-[#79002F]/75">
               <div className="flex items-center text-amber-500">
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
               </div>
-              <span className="font-bold text-brand-text-primary">{product.rating}</span>
-              <span>({product.reviewCount} customer reviews)</span>
+              <span className="font-bold text-[#5C0024]">{product.rating}</span>
+              <span>({product.reviewCount} reviews)</span>
             </div>
           </div>
 
           {/* Pricing */}
-          <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-bold text-brand-burgundy font-sans">
+          <div className="flex items-baseline gap-3 pt-1">
+            <span className="text-2xl sm:text-3xl font-bold text-[#79002F] font-sans">
               ₹{product.price.toLocaleString('en-IN')}
             </span>
             {product.originalPrice && (
-              <span className="text-base text-brand-text-muted line-through">
+              <span className="text-sm text-[#8C7A80] line-through">
                 ₹{product.originalPrice.toLocaleString('en-IN')}
               </span>
             )}
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-softPink text-brand-burgundy">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF0F2] text-[#D9536F] border border-[#FADDE3]">
                 Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
               </span>
             )}
           </div>
 
-          <p className="text-sm text-brand-text-muted leading-relaxed">
-            {product.description}
-          </p>
+          {/* Description */}
+          <div className="text-xs sm:text-sm text-[#79002F]/85 leading-relaxed bg-white/70 p-4 rounded-2xl border border-[#FAD3DC]/70">
+            <p>{product.description}</p>
+          </div>
 
-          {/* Quantity Selector & Add to Bag */}
-          <div className="space-y-4 pt-4 border-t border-brand-border">
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-semibold uppercase tracking-wider text-brand-text-muted">
-                Quantity:
-              </span>
-              <div className="flex items-center rounded-full border border-brand-border bg-white px-2 py-1">
+          {/* Quantity and Add to Bag */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center border border-[#F2DCD1] rounded-full bg-white px-2 py-1 shadow-2xs">
                 <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="p-1 text-brand-text-muted hover:text-brand-burgundy"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="w-7 h-7 flex items-center justify-center text-[#79002F] hover:bg-[#FFF0F3] rounded-full transition-colors active:scale-90"
                   aria-label="Decrease quantity"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="w-8 text-center text-sm font-semibold text-brand-text-primary">
-                  {quantity}
-                </span>
+                <span className="w-8 text-center text-xs font-bold text-[#5C0024]">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="p-1 text-brand-text-muted hover:text-brand-burgundy"
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="w-7 h-7 flex items-center justify-center text-[#79002F] hover:bg-[#FFF0F3] rounded-full transition-colors active:scale-90"
                   aria-label="Increase quantity"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
-            </div>
 
-            <div className="flex items-center gap-3">
-              <Button
-                variant="primary"
-                size="lg"
-                className="flex-1"
-                leftIcon={<ShoppingBag className="w-5 h-5" />}
-                onClick={handleAddToCart}
-              >
-                Add to Bag • ₹{(product.price * quantity).toLocaleString('en-IN')}
-              </Button>
               <button
-                onClick={() => setIsWishlisted(!isWishlisted)}
-                aria-label="Wishlist"
-                className={`p-3.5 rounded-full border border-brand-border bg-white transition-all hover:scale-105 ${
-                  isWishlisted ? 'text-brand-burgundy border-brand-burgundy' : 'text-brand-text-muted'
-                }`}
+                onClick={handleAddToCart}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#79002F] text-white text-xs sm:text-sm font-semibold shadow-md hover:bg-[#5C0024] hover:shadow-lg active:scale-95 transition-all"
               >
-                <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+                <ShoppingBag className="w-4 h-4" />
+                <span>Add to Bag — ₹{(product.price * quantity).toLocaleString('en-IN')}</span>
               </button>
             </div>
           </div>
 
-          {/* Guarantees */}
-          <div className="bg-brand-cream/60 rounded-2xl p-4 space-y-3 border border-brand-border/60 text-xs text-brand-text-muted">
+          {/* Materials & Care */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-[#F2DCD1]/80 text-xs">
+            <div className="p-3 bg-white/80 rounded-2xl border border-[#FAD3DC]/60">
+              <h4 className="font-serif font-bold text-[#5C0024] mb-1">Materials</h4>
+              <p className="text-[#79002F]/75 leading-snug">{product.materials}</p>
+            </div>
+            <div className="p-3 bg-white/80 rounded-2xl border border-[#FAD3DC]/60">
+              <h4 className="font-serif font-bold text-[#5C0024] mb-1">Care Guide</h4>
+              <p className="text-[#79002F]/75 leading-snug">{product.care}</p>
+            </div>
+          </div>
+
+          {/* Trust Guarantees */}
+          <div className="p-3.5 rounded-2xl bg-[#FFF8F3] border border-[#F2DCD1] space-y-2 text-xs text-[#79002F]/80">
             <div className="flex items-center gap-2">
-              <Truck className="w-4 h-4 text-brand-burgundy shrink-0" />
-              <span>Free Delivery across India on orders above ₹999</span>
+              <Truck className="w-4 h-4 text-[#79002F] shrink-0" />
+              <span>Free standard delivery on orders above ₹999</span>
             </div>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-brand-burgundy shrink-0" />
-              <span>100% Handcrafted with genuine premium yarn</span>
+              <ShieldCheck className="w-4 h-4 text-[#79002F] shrink-0" />
+              <span>Cash on Delivery (COD) supported across India</span>
             </div>
           </div>
         </div>

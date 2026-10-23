@@ -39,6 +39,9 @@ jobs:
         run: pnpm install
 
       - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://rclxmrnzqpcdnojxahem.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjbHhtcm56cXBjZG5vanhhaGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5NzgyODksImV4cCI6MjEwNzU1NDI4OX0.sDO0OPc6bEzjdnvt1m2QnoZt52V7Tl6DvzjylBk5mJc' }}
         run: pnpm build
 
       - name: Add 404.html fallback

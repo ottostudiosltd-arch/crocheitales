@@ -41,6 +41,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   className = '',
 }) => {
   const [wishlistActive, setWishlistActive] = useState(isWishlisted);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -68,11 +69,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       {/* Top Image Container */}
       <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-[#FAF3F4] mb-2.5">
+        {!imageLoaded && (
+          <div className="absolute inset-0 shimmer-effect pointer-events-none" />
+        )}
         <Link to={`/products/${product.slug}`} className="block w-full h-full">
           <img
             src={product.imageUrl}
             alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onLoad={() => setImageLoaded(true)}
+            className={cn(
+              'w-full h-full object-cover transition-all duration-500 group-hover:scale-105',
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            )}
             loading="lazy"
             decoding="async"
           />

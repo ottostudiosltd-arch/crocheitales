@@ -3,12 +3,16 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { ProductCard, type Product } from '../components/shop/ProductCard';
 import { CATEGORIES } from '../data/catalog';
-import { fetchProducts } from '../services/productService';
+import { fetchProducts, filterCatalogProducts } from '../services/productService';
+import { ProductGridSkeleton } from '../components/ui/Skeleton';
 
 export const CategoryDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Synchronous immediate in-memory load for 0ms delay
+  const initialLocal = filterCatalogProducts({ categorySlug: slug });
+  const [products, setProducts] = useState<Product[]>(initialLocal);
+  const [loading, setLoading] = useState(initialLocal.length === 0);
 
   const matchedCat = CATEGORIES.find(
     (c) => c.slug.toLowerCase() === slug?.toLowerCase()
@@ -22,60 +26,73 @@ export const CategoryDetailPage: React.FC = () => {
         .join(' ');
 
   useEffect(() => {
-    setLoading(true);
+    // If no local products exist, show shimmer skeleton while checking Supabase
+    if (products.length === 0) {
+      setLoading(true);
+    }
+
     fetchProducts({ categorySlug: slug }).then((res) => {
-      setProducts(res || []);
+      if (res && res.length > 0) {
+        setProducts(res);
+      }
       setLoading(false);
     });
   }, [slug]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8 animate-fade-in">
       <Link
         to="/categories"
-        className="inline-flex items-center gap-2 text-xs sm:text-sm text-[#79002F] font-semibold hover:underline"
+        className="inline-flex items-center gap-2 text-xs sm:text-sm text-[#79002F] font-semibold hover:underline group"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
         <span>Back to All Categories</span>
       </Link>
 
-      <div className="bg-[#FFF4F6] p-6 sm:p-8 rounded-3xl border border-[#FAD3DC] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="space-y-1.5">
+      {/* Category Hero Banner */}
+      <div className="bg-[#FFF4F6] p-6 sm:p-8 rounded-3xl border border-[#FAD3DC] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+        <div className="space-y-1.5 flex-1">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{matchedCat?.badge || '🧶'}</span>
             <h1 className="text-2xl sm:text-3xl font-serif text-[#5C0024] font-bold">
               {title}
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-[#79002F]/80 max-w-xl">
+          <p className="text-xs sm:text-sm text-[#79002F]/80 max-w-xl leading-relaxed">
             {matchedCat?.description ||
               `Showing handcrafted crochet pieces specially created under ${title}.`}
           </p>
         </div>
 
         {matchedCat && (
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border border-white/80 shadow-xs shrink-0 self-center sm:self-auto">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border border-white/80 shadow-xs shrink-0 self-center sm:self-auto bg-white">
             <img
               src={matchedCat.image}
               alt={matchedCat.title}
               className="w-full h-full object-cover"
+              loading="eager"
             />
           </div>
         )}
       </div>
 
-      {loading ? (
-        <div className="py-12 text-center text-xs text-[#79002F]/70">
-          Loading {title} pieces...
+      {/* Products Grid or Shimmer Skeleton */}
+      {loading && products.length === 0 ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="h-4 w-32 shimmer-effect rounded-md" />
+            <div className="h-4 w-20 shimmer-effect rounded-md" />
+          </div>
+          <ProductGridSkeleton count={4} />
         </div>
       ) : products.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-6">
           {products.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#F2DCD1] space-y-3">
+        <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#F2DCD1] space-y-3 shadow-2xs">
           <div className="w-12 h-12 rounded-full bg-[#FFF0F3] text-[#79002F] mx-auto flex items-center justify-center">
             <Sparkles className="w-6 h-6" />
           </div>

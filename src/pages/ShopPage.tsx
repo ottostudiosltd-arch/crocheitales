@@ -12,6 +12,8 @@ import { ProductCard, type Product } from '../components/shop/ProductCard';
 import { fetchProducts } from '../services/productService';
 import { PRODUCTS } from '../data/catalog';
 
+import { ProductGridSkeleton } from '../components/ui/Skeleton';
+
 // Custom icons matching client mockup
 const BowIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -44,13 +46,19 @@ export const ShopPage: React.FC = () => {
   ];
 
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchProducts().then((dbProducts) => {
-      if (dbProducts && dbProducts.length > 0) {
-        setProducts(dbProducts);
-      }
-    });
+    if (products.length === 0) setLoading(true);
+    fetchProducts()
+      .then((dbProducts) => {
+        if (dbProducts && dbProducts.length > 0) {
+          setProducts(dbProducts);
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   const handleAddToCart = (product: Product) => {
@@ -188,11 +196,13 @@ export const ShopPage: React.FC = () => {
         </div>
 
         {/* Product Grid / List */}
-        {filtered.length > 0 ? (
+        {loading && products.length === 0 ? (
+          <ProductGridSkeleton count={8} />
+        ) : filtered.length > 0 ? (
           <div
             className={
               viewMode === 'grid'
-                ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5'
+                ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-5'
                 : 'grid grid-cols-1 md:grid-cols-2 gap-4'
             }
           >

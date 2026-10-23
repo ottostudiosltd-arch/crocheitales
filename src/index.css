@@ -61,4 +61,25 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #79002F;
   }
+
+  /* Boutique Shimmer Animation */
+  @keyframes ct-shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .shimmer-effect {
+    background: linear-gradient(
+      90deg,
+      #FCEEF1 0%,
+      #FFF7F9 50%,
+      #FCEEF1 100%
+    );
+    background-size: 200% 100%;
+    animation: ct-shimmer 1.5s ease-in-out infinite;
+  }
 }
